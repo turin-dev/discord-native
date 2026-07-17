@@ -17,6 +17,7 @@ aliases: [Change Log]
 - gitleaks 기본 규칙과 검토된 vendored test vector allowlist를 추가하고 전체 Git 이력 0건 검증
 - MIT 프로젝트 라이선스, third-party 고지, 기여·보안 정책, issue·pull request template 추가
 - 공개용 README, Windows setup script, Dependabot과 signed release secret 안내 추가
+- Dart 3.12 전용 package가 Flutter 3.41.9 CI에 제안되지 않도록 Dependabot 호환 범위 고정
 - 존재하지 않는 category를 참조하는 channel도 목록에서 보존하도록 정렬 보정
 - guild owner·role과 channel permission overwrite 모델 및 role Gateway event 구현
 - owner·ADMINISTRATOR·role/member overwrite·thread 상속·timeout을 포함한 `BigInt` permission 계산 구현

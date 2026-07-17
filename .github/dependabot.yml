@@ -5,6 +5,15 @@ updates:
     schedule:
       interval: weekly
     open-pull-requests-limit: 5
+    ignore:
+      - dependency-name: lottie
+        versions: [">=3.5.1"]
+      - dependency-name: record
+        versions: [">=7.0.0"]
+      - dependency-name: sqflite_common_ffi
+        versions: [">=2.4.2"]
+      - dependency-name: video_player
+        versions: [">=2.13.0"]
   - package-ecosystem: github-actions
     directory: /
     schedule:
