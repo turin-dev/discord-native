@@ -3,7 +3,7 @@ type: open-questions
 status: active
 tags: [risks, roadmap]
 source_paths: [plan.md, lib/]
-reviewed_at: 2026-07-17
+reviewed_at: 2026-07-18
 confidence: high
 aliases: [Open Questions]
 ---
@@ -16,7 +16,7 @@ aliases: [Open Questions]
 - read state는 READY snapshot·`MESSAGE_ACK`·`CHANNEL_UNREAD_UPDATE` 수신과 역추적한 `/read-states/ack-bulk` 송신을 양방향 조정하지만 공개 계약이 아니므로 401·403·404 fallback과 변경 모니터링이 필요하다. 실패 시 unread는 로컬 상태를 유지하며 영구적인 100% 동기화를 보증하지 않는다.
 - Voice v8, UDP/RTP, Opus, AEAD와 DAVE E2EE 음성 경로 및 시작 시 입력·출력 장치 선택은 구현됐지만 실제 Discord 계정 2개를 사용한 장시간 통화, 통화 중 장치 hot swap, echo cancellation과 noise suppression 검증이 남아 있다.
 - 카메라 화상과 Go Live 화면공유 경로는 구현됐지만 실제 Discord SFU와 복수 참가자 환경의 장시간 호환성 검증이 남아 있다.
-- PTT는 앱 내 pointer hold를 지원하고 앱 토글용 Windows 전역 단축키는 별도다. 전역 PTT key binding은 후속 범위다.
+- PTT는 앱 내 pointer hold와 Windows 전역 F1–F12 key binding, 0–2000ms release delay를 지원한다. 임의 키·마우스 버튼 recording과 관리자 권한으로 실행한 게임에서의 접근은 후속 범위이며, Windows UIPI 제약 때문에 앱과 대상 프로세스의 권한 수준이 다르면 전역 key 상태 확인이 실패할 수 있다.
 - 사용자 투표 참여는 역추적한 `/channels/{channel.id}/polls/{message.id}/answers/@me`를 사용한다. 공개 문서가 앱의 투표를 명시적으로 허용하지 않으므로 부계정 실기기 검증과 endpoint 변경 모니터링이 남아 있다.
 - channel 고정은 로컬 설정이다. Inbox unread는 서버 read state와 best-effort로 동기화하지만 비공개 계약 변화 시 로컬 값으로 fallback한다.
 - 자동 업데이트 배포에는 운영 HTTPS feed와 실제 WinSparkle DSA key pair를 CI secret으로 주입해야 한다. 저장소에는 key를 포함하지 않는다.

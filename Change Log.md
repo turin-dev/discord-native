@@ -3,12 +3,20 @@ type: change-log
 status: active
 tags: [changes]
 source_paths: [lib/, test/, windows/, third_party/, tool/]
-reviewed_at: 2026-07-17
+reviewed_at: 2026-07-18
 confidence: high
 aliases: [Change Log]
 ---
 
 # Change Log
+
+## 2026-07-18
+
+- Windows 전역 F1–F12 Push-to-Talk press/release 감지와 active PTT 음성 엔진 전달 구현
+- 전역 PTT 활성화, 단축키 선택과 0–2000ms release delay 설정·secure storage 영속화 구현
+- active PTT 음성 세션에서만 선택한 단일 virtual key를 확인하고, 대기 중에는 꺼지는 `GetAsyncKeyState` polling 경계 구현
+- 음성 설정 UI를 독립 컴포넌트로 분리하고 switch·dropdown·slider 클릭 경로 테스트 추가
+- analyzer 0건, 355개 테스트와 80.47% line coverage, Windows debug·release build 검증
 
 ## 2026-07-17
 

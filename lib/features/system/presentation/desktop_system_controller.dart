@@ -43,6 +43,8 @@ final class DesktopSystemController {
 
   DesktopSystemState get state => _state;
 
+  Stream<bool> get pushToTalkPressed => _bridge.pushToTalkPressed;
+
   Stream<DesktopSystemState> get states async* {
     yield _state;
     yield* _states.stream;
@@ -98,6 +100,15 @@ final class DesktopSystemController {
       await _bridge.showWindow();
     } on Object {
       _update(_state.copyWith(errorMessage: '앱 창을 표시하지 못했습니다.'));
+    }
+  }
+
+  Future<void> setPushToTalkSessionActive(bool active) async {
+    _ensureActive();
+    try {
+      await _bridge.setPushToTalkSessionActive(active);
+    } on Object {
+      _update(_state.copyWith(errorMessage: '전역 Push-to-Talk을 적용하지 못했습니다.'));
     }
   }
 

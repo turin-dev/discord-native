@@ -3,6 +3,7 @@ import 'dart:io';
 import 'dart:math';
 
 import 'package:discord_native/app/discord_app_controller.dart';
+import 'package:discord_native/app/global_push_to_talk_dispatcher.dart';
 import 'package:discord_native/core/auth/discord_account_repository.dart';
 import 'package:discord_native/core/auth/discord_account_session_controller.dart';
 import 'package:discord_native/core/auth/secure_token_repository.dart';
@@ -39,6 +40,7 @@ import 'package:discord_native/features/workspace/data/discord_scheduled_event_r
 import 'package:discord_native/features/workspace/data/read_state_repository.dart';
 import 'package:discord_native/features/workspace/data/discord_thread_repository.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:logging/logging.dart';
 import 'package:path/path.dart' as path;
 import 'package:path_provider/path_provider.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
@@ -207,10 +209,73 @@ final appControllerProvider = Provider<DiscordAppController>((ref) {
     readStateRepository: ref.watch(readStateRepositoryProvider),
     messageCacheRepository: ref.watch(messageCacheRepositoryProvider),
   );
-  ref.onDispose(() => unawaited(controller.dispose()));
+  final pushToTalkSubscription = desktopSystem.pushToTalkPressed.listen(
+    (pressed) => _forwardGlobalPushToTalk(controller, pressed),
+  );
+  final pushToTalkSessionSubscription = controller.states
+      .map((state) => shouldMonitorGlobalPushToTalk(state.voiceUiState.media))
+      .distinct()
+      .listen((active) => _setGlobalPushToTalkSession(desktopSystem, active));
+  ref.onDispose(
+    () => unawaited(
+      _disposeAppController(
+        controller,
+        pushToTalkSubscription,
+        pushToTalkSessionSubscription,
+      ),
+    ),
+  );
   unawaited(controller.initialize());
   return controller;
 });
+
+final _providerLogger = Logger('DiscordAppProviders');
+
+void _forwardGlobalPushToTalk(DiscordAppController controller, bool pressed) {
+  unawaited(
+    dispatchGlobalPushToTalk(
+      media: controller.state.voiceUiState.media,
+      pressed: pressed,
+      apply: controller.setPushToTalkPressed,
+    ).onError((error, stackTrace) {
+      _providerLogger.warning(
+        '전역 Push-to-Talk 상태를 음성 엔진에 전달하지 못했습니다.',
+        error,
+        stackTrace,
+      );
+    }),
+  );
+}
+
+void _setGlobalPushToTalkSession(
+  DesktopSystemController desktopSystem,
+  bool active,
+) {
+  unawaited(
+    desktopSystem.setPushToTalkSessionActive(active).onError((
+      error,
+      stackTrace,
+    ) {
+      _providerLogger.warning(
+        '전역 Push-to-Talk 감시 상태를 변경하지 못했습니다.',
+        error,
+        stackTrace,
+      );
+    }),
+  );
+}
+
+Future<void> _disposeAppController(
+  DiscordAppController controller,
+  StreamSubscription<bool> pushToTalkSubscription,
+  StreamSubscription<bool> pushToTalkSessionSubscription,
+) async {
+  await Future.wait([
+    pushToTalkSubscription.cancel(),
+    pushToTalkSessionSubscription.cancel(),
+  ]);
+  await controller.dispose();
+}
 
 final videoCaptureProvider = Provider<FlutterDiscordVideoCapture>((ref) {
   final capture = FlutterDiscordVideoCapture();

@@ -1,6 +1,7 @@
 import 'dart:convert';
 
 import 'package:discord_native/core/auth/secure_token_repository.dart';
+import 'package:discord_native/features/system/domain/desktop_push_to_talk.dart';
 import 'package:discord_native/features/system/domain/desktop_settings.dart';
 
 abstract interface class DesktopSettingsStorage {
@@ -95,6 +96,18 @@ DesktopSettings _fromJson(Map<String, Object?> json) {
     ),
     inputDeviceId: _string(json['inputDeviceId']),
     outputDeviceId: _string(json['outputDeviceId']),
+    globalPushToTalkEnabled: _boolean(
+      json['globalPushToTalkEnabled'],
+      defaults.globalPushToTalkEnabled,
+    ),
+    pushToTalkKey: DesktopPushToTalkKey.values.firstWhere(
+      (value) => value.name == json['pushToTalkKey'],
+      orElse: () => DesktopPushToTalkKey.f8,
+    ),
+    pushToTalkReleaseDelayMs: normalizePushToTalkReleaseDelay(
+      _integer(json['pushToTalkReleaseDelayMs']) ??
+          defaults.pushToTalkReleaseDelayMs,
+    ),
   );
 }
 
@@ -113,6 +126,11 @@ Map<String, Object> _toJson(DesktopSettings settings) {
     'pinnedChannelIds': settings.pinnedChannelIds,
     'inputDeviceId': settings.inputDeviceId,
     'outputDeviceId': settings.outputDeviceId,
+    'globalPushToTalkEnabled': settings.globalPushToTalkEnabled,
+    'pushToTalkKey': settings.pushToTalkKey.name,
+    'pushToTalkReleaseDelayMs': normalizePushToTalkReleaseDelay(
+      settings.pushToTalkReleaseDelayMs,
+    ),
   };
 }
 
@@ -122,6 +140,10 @@ bool _boolean(Object? value, bool fallback) {
 
 double? _number(Object? value) {
   return value is num ? value.toDouble() : null;
+}
+
+int? _integer(Object? value) {
+  return value is int ? value : null;
 }
 
 Iterable<String> _readStrings(Object? value) sync* {

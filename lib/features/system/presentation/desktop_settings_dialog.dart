@@ -6,6 +6,7 @@ import 'package:discord_native/core/auth/discord_account_repository.dart';
 import 'package:discord_native/core/auth/discord_account_session_controller.dart';
 import 'package:discord_native/features/system/domain/desktop_settings.dart';
 import 'package:discord_native/features/system/presentation/desktop_system_controller.dart';
+import 'package:discord_native/features/system/presentation/desktop_voice_settings_section.dart';
 import 'package:discord_native/features/voice/domain/discord_audio_device.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -64,7 +65,7 @@ class _DesktopSettingsDialogState extends ConsumerState<DesktopSettingsDialog> {
                 onChanged: _updateSettings,
               ),
               const Divider(height: 32),
-              _VoiceSection(
+              DesktopVoiceSettingsSection(
                 settings: systemState.settings,
                 devices: audioDevices,
                 enabled: !_busy,
@@ -166,99 +167,6 @@ class _DesktopSettingsDialogState extends ConsumerState<DesktopSettingsDialog> {
         setState(() => _busy = false);
       }
     }
-  }
-}
-
-class _VoiceSection extends StatelessWidget {
-  const _VoiceSection({
-    required this.settings,
-    required this.devices,
-    required this.enabled,
-    required this.onChanged,
-  });
-
-  final DesktopSettings settings;
-  final DiscordAudioDeviceCatalog devices;
-  final bool enabled;
-  final ValueChanged<DesktopSettings> onChanged;
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        Text('음성 및 비디오', style: Theme.of(context).textTheme.titleMedium),
-        const SizedBox(height: 12),
-        _DeviceDropdown(
-          label: '입력 장치',
-          selectedId: settings.inputDeviceId,
-          devices: devices.inputDevices,
-          enabled: enabled,
-          onChanged: (deviceId) {
-            onChanged(settings.copyWith(inputDeviceId: deviceId));
-          },
-        ),
-        const SizedBox(height: 12),
-        _DeviceDropdown(
-          label: '출력 장치',
-          selectedId: settings.outputDeviceId,
-          devices: devices.outputDevices,
-          enabled: enabled,
-          onChanged: (deviceId) {
-            onChanged(settings.copyWith(outputDeviceId: deviceId));
-          },
-        ),
-        const SizedBox(height: 8),
-        const Text('장치 변경은 다음 음성 연결부터 적용됩니다.'),
-      ],
-    );
-  }
-}
-
-class _DeviceDropdown extends StatelessWidget {
-  const _DeviceDropdown({
-    required this.label,
-    required this.selectedId,
-    required this.devices,
-    required this.enabled,
-    required this.onChanged,
-  });
-
-  final String label;
-  final String selectedId;
-  final List<DiscordAudioDevice> devices;
-  final bool enabled;
-  final ValueChanged<String> onChanged;
-
-  @override
-  Widget build(BuildContext context) {
-    final hasSelected = devices.any((device) => device.id == selectedId);
-    return DropdownButtonFormField<String>(
-      initialValue: selectedId,
-      decoration: InputDecoration(labelText: label),
-      items: [
-        const DropdownMenuItem(value: '', child: Text('시스템 기본값')),
-        if (selectedId.isNotEmpty && !hasSelected)
-          DropdownMenuItem(
-            value: selectedId,
-            child: Text('저장된 장치 ($selectedId)'),
-          ),
-        for (final device in devices)
-          DropdownMenuItem(
-            value: device.id,
-            child: Text(
-              device.isDefault ? '${device.label} · 기본값' : device.label,
-            ),
-          ),
-      ],
-      onChanged: enabled
-          ? (value) {
-              if (value != null) {
-                onChanged(value);
-              }
-            }
-          : null,
-    );
   }
 }
 

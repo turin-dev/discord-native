@@ -8,6 +8,10 @@ final class DesktopNotification {
 }
 
 abstract interface class DesktopSystemBridge {
+  Stream<bool> get pushToTalkPressed;
+
+  Future<void> setPushToTalkSessionActive(bool active);
+
   Future<void> initialize(DesktopSettings settings);
 
   Future<void> apply(DesktopSettings settings);
@@ -21,6 +25,12 @@ abstract interface class DesktopSystemBridge {
 
 final class NoopDesktopSystemBridge implements DesktopSystemBridge {
   const NoopDesktopSystemBridge();
+
+  @override
+  Stream<bool> get pushToTalkPressed => const Stream.empty();
+
+  @override
+  Future<void> setPushToTalkSessionActive(bool active) async {}
 
   @override
   Future<void> apply(DesktopSettings settings) async {}

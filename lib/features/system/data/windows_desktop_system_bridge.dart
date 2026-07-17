@@ -1,9 +1,11 @@
 // coverage:ignore-file
 
 import 'dart:async';
+import 'dart:ffi';
 import 'dart:io';
 
 import 'package:auto_updater/auto_updater.dart';
+import 'package:discord_native/features/system/domain/desktop_push_to_talk.dart';
 import 'package:discord_native/features/system/domain/desktop_settings.dart';
 import 'package:discord_native/features/system/domain/desktop_system_bridge.dart';
 import 'package:flutter/services.dart';
@@ -26,11 +28,35 @@ final class WindowsDesktopSystemBridge
   static final _logger = Logger('WindowsDesktopSystemBridge');
   static const _appName = 'Discord Native';
   static const _updateIntervalSeconds = 86400;
+  static const _pushToTalkPollInterval = Duration(milliseconds: 16);
+  static final int Function(int) _getAsyncKeyState =
+      DynamicLibrary.open(
+        'user32.dll',
+      ).lookupFunction<Int16 Function(Int32), int Function(int)>(
+        'GetAsyncKeyState',
+      );
 
   final String updateFeedUrl;
+  final StreamController<bool> _pushToTalkStates = StreamController.broadcast();
   DesktopSettings _settings = const DesktopSettings.defaults();
+  Timer? _pushToTalkPollTimer;
+  Timer? _pushToTalkReleaseTimer;
+  bool _pushToTalkPressed = false;
+  bool _pushToTalkSessionActive = false;
   bool _initialized = false;
   bool _quitting = false;
+
+  @override
+  Stream<bool> get pushToTalkPressed => _pushToTalkStates.stream;
+
+  @override
+  Future<void> setPushToTalkSessionActive(bool active) async {
+    if (_pushToTalkSessionActive == active) {
+      return;
+    }
+    _pushToTalkSessionActive = active;
+    _configurePushToTalk(_settings);
+  }
 
   @override
   Future<void> initialize(DesktopSettings settings) async {
@@ -55,6 +81,7 @@ final class WindowsDesktopSystemBridge
     _settings = settings;
     await windowManager.setPreventClose(settings.minimizeToTray);
     await _configureHotKey(settings.globalShortcutEnabled);
+    _configurePushToTalk(settings);
     await _configureUpdater(settings.autoUpdateEnabled);
   }
 
@@ -78,13 +105,17 @@ final class WindowsDesktopSystemBridge
 
   @override
   Future<void> dispose() async {
-    if (!_initialized) {
+    if (_pushToTalkStates.isClosed) {
       return;
     }
-    windowManager.removeListener(this);
-    trayManager.removeListener(this);
-    await hotKeyManager.unregisterAll();
-    await trayManager.destroy();
+    _stopPushToTalkMonitoring();
+    if (_initialized) {
+      windowManager.removeListener(this);
+      trayManager.removeListener(this);
+      await hotKeyManager.unregisterAll();
+      await trayManager.destroy();
+    }
+    await _pushToTalkStates.close();
     _initialized = false;
   }
 
@@ -157,6 +188,60 @@ final class WindowsDesktopSystemBridge
     await autoUpdater.setFeedURL(updateFeedUrl);
     await autoUpdater.setScheduledCheckInterval(_updateIntervalSeconds);
     await autoUpdater.checkForUpdates(inBackground: true);
+  }
+
+  void _configurePushToTalk(DesktopSettings settings) {
+    _stopPushToTalkMonitoring();
+    if (!settings.globalPushToTalkEnabled || !_pushToTalkSessionActive) {
+      return;
+    }
+    final virtualKey = 0x70 + settings.pushToTalkKey.index;
+    final releaseDelay = normalizePushToTalkReleaseDelay(
+      settings.pushToTalkReleaseDelayMs,
+    );
+    _pushToTalkPollTimer = Timer.periodic(
+      _pushToTalkPollInterval,
+      (_) => _pollPushToTalk(virtualKey, releaseDelay),
+    );
+  }
+
+  void _pollPushToTalk(int virtualKey, int releaseDelayMs) {
+    final keyDown = _getAsyncKeyState(virtualKey) < 0;
+    if (keyDown) {
+      _pushToTalkReleaseTimer?.cancel();
+      _pushToTalkReleaseTimer = null;
+      _emitPushToTalk(true);
+      return;
+    }
+    if (!_pushToTalkPressed || _pushToTalkReleaseTimer != null) {
+      return;
+    }
+    if (releaseDelayMs == 0) {
+      _emitPushToTalk(false);
+      return;
+    }
+    _pushToTalkReleaseTimer = Timer(Duration(milliseconds: releaseDelayMs), () {
+      _pushToTalkReleaseTimer = null;
+      _emitPushToTalk(false);
+    });
+  }
+
+  void _stopPushToTalkMonitoring() {
+    _pushToTalkPollTimer?.cancel();
+    _pushToTalkPollTimer = null;
+    _pushToTalkReleaseTimer?.cancel();
+    _pushToTalkReleaseTimer = null;
+    _emitPushToTalk(false);
+  }
+
+  void _emitPushToTalk(bool pressed) {
+    if (_pushToTalkPressed == pressed) {
+      return;
+    }
+    _pushToTalkPressed = pressed;
+    if (!_pushToTalkStates.isClosed) {
+      _pushToTalkStates.add(pressed);
+    }
   }
 
   Future<void> _exitApp() async {

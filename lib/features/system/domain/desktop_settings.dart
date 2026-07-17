@@ -1,4 +1,5 @@
 import 'package:collection/collection.dart';
+import 'package:discord_native/features/system/domain/desktop_push_to_talk.dart';
 
 enum DesktopThemeMode { system, light, ash, dark, onyx }
 
@@ -17,7 +18,13 @@ final class DesktopSettings {
     this.pinnedChannelIds = const [],
     this.inputDeviceId = '',
     this.outputDeviceId = '',
-  });
+    this.globalPushToTalkEnabled = true,
+    this.pushToTalkKey = DesktopPushToTalkKey.f8,
+    this.pushToTalkReleaseDelayMs = 20,
+  }) : assert(
+         pushToTalkReleaseDelayMs >= minPushToTalkReleaseDelayMs &&
+             pushToTalkReleaseDelayMs <= maxPushToTalkReleaseDelayMs,
+       );
 
   static const minChannelSidebarWidth = 220.0;
   static const defaultChannelSidebarWidth = 240.0;
@@ -34,7 +41,10 @@ final class DesktopSettings {
       channelSidebarWidth = defaultChannelSidebarWidth,
       pinnedChannelIds = const [],
       inputDeviceId = '',
-      outputDeviceId = '';
+      outputDeviceId = '',
+      globalPushToTalkEnabled = true,
+      pushToTalkKey = DesktopPushToTalkKey.f8,
+      pushToTalkReleaseDelayMs = 20;
 
   final DesktopThemeMode themeMode;
   final int accentColorValue;
@@ -47,6 +57,9 @@ final class DesktopSettings {
   final List<String> pinnedChannelIds;
   final String inputDeviceId;
   final String outputDeviceId;
+  final bool globalPushToTalkEnabled;
+  final DesktopPushToTalkKey pushToTalkKey;
+  final int pushToTalkReleaseDelayMs;
 
   DesktopSettings copyWith({
     DesktopThemeMode? themeMode,
@@ -60,6 +73,9 @@ final class DesktopSettings {
     List<String>? pinnedChannelIds,
     String? inputDeviceId,
     String? outputDeviceId,
+    bool? globalPushToTalkEnabled,
+    DesktopPushToTalkKey? pushToTalkKey,
+    int? pushToTalkReleaseDelayMs,
   }) {
     return DesktopSettings(
       themeMode: themeMode ?? this.themeMode,
@@ -76,6 +92,12 @@ final class DesktopSettings {
           : List.unmodifiable(pinnedChannelIds),
       inputDeviceId: inputDeviceId ?? this.inputDeviceId,
       outputDeviceId: outputDeviceId ?? this.outputDeviceId,
+      globalPushToTalkEnabled:
+          globalPushToTalkEnabled ?? this.globalPushToTalkEnabled,
+      pushToTalkKey: pushToTalkKey ?? this.pushToTalkKey,
+      pushToTalkReleaseDelayMs: normalizePushToTalkReleaseDelay(
+        pushToTalkReleaseDelayMs ?? this.pushToTalkReleaseDelayMs,
+      ),
     );
   }
 
@@ -95,7 +117,10 @@ final class DesktopSettings {
           pinnedChannelIds,
         ) &&
         other.inputDeviceId == inputDeviceId &&
-        other.outputDeviceId == outputDeviceId;
+        other.outputDeviceId == outputDeviceId &&
+        other.globalPushToTalkEnabled == globalPushToTalkEnabled &&
+        other.pushToTalkKey == pushToTalkKey &&
+        other.pushToTalkReleaseDelayMs == pushToTalkReleaseDelayMs;
   }
 
   @override
@@ -111,6 +136,9 @@ final class DesktopSettings {
     const ListEquality<String>().hash(pinnedChannelIds),
     inputDeviceId,
     outputDeviceId,
+    globalPushToTalkEnabled,
+    pushToTalkKey,
+    pushToTalkReleaseDelayMs,
   );
 }
 

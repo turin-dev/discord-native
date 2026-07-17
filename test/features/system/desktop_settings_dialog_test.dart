@@ -52,6 +52,9 @@ void main() {
     expect(find.text('Spacious'), findsOneWidget);
     expect(find.text('입력 장치'), findsOneWidget);
     expect(find.text('출력 장치'), findsOneWidget);
+    expect(find.text('전역 Push-to-Talk'), findsOneWidget);
+    expect(find.text('PTT 단축키'), findsOneWidget);
+    expect(find.text('릴리스 지연 20ms'), findsOneWidget);
     expect(find.text('alice'), findsOneWidget);
   });
 

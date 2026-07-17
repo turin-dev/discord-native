@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:discord_native/features/system/data/desktop_settings_repository.dart';
 import 'package:discord_native/features/system/domain/desktop_settings.dart';
 import 'package:discord_native/features/system/domain/desktop_system_bridge.dart';
@@ -120,6 +122,38 @@ void main() {
 
       expect(controller.initialize, throwsStateError);
     });
+
+    test('Windows 전역 PTT press와 release 이벤트를 그대로 노출한다', () async {
+      final bridge = _FakeDesktopSystemBridge();
+      final controller = DesktopSystemController(
+        _MemorySettingsRepository(),
+        bridge,
+      );
+      addTearDown(controller.dispose);
+      final values = <bool>[];
+      final subscription = controller.pushToTalkPressed.listen(values.add);
+      addTearDown(subscription.cancel);
+
+      bridge.emitPushToTalk(true);
+      bridge.emitPushToTalk(false);
+      await pumpEventQueue();
+
+      expect(values, [true, false]);
+    });
+
+    test('PTT 음성 세션 활성 상태를 네이티브 브리지에 위임한다', () async {
+      final bridge = _FakeDesktopSystemBridge();
+      final controller = DesktopSystemController(
+        _MemorySettingsRepository(),
+        bridge,
+      );
+      addTearDown(controller.dispose);
+
+      await controller.setPushToTalkSessionActive(true);
+      await controller.setPushToTalkSessionActive(false);
+
+      expect(bridge.pushToTalkSessionValues, [true, false]);
+    });
   });
 }
 
@@ -138,6 +172,7 @@ final class _MemorySettingsRepository implements DesktopSettingsRepository {
 }
 
 final class _FakeDesktopSystemBridge implements DesktopSystemBridge {
+  final StreamController<bool> _pushToTalk = StreamController.broadcast();
   DesktopSettings? initializedWith;
   DesktopSettings? appliedWith;
   Object? applyError;
@@ -146,6 +181,20 @@ final class _FakeDesktopSystemBridge implements DesktopSystemBridge {
   Object? showWindowError;
   int showWindowCount = 0;
   final List<DesktopNotification> notifications = [];
+  List<bool> pushToTalkSessionValues = const [];
+
+  @override
+  Stream<bool> get pushToTalkPressed => _pushToTalk.stream;
+
+  void emitPushToTalk(bool pressed) => _pushToTalk.add(pressed);
+
+  @override
+  Future<void> setPushToTalkSessionActive(bool active) async {
+    pushToTalkSessionValues = List.unmodifiable([
+      ...pushToTalkSessionValues,
+      active,
+    ]);
+  }
 
   @override
   Future<void> apply(DesktopSettings settings) async {
@@ -157,7 +206,7 @@ final class _FakeDesktopSystemBridge implements DesktopSystemBridge {
   }
 
   @override
-  Future<void> dispose() async {}
+  Future<void> dispose() => _pushToTalk.close();
 
   @override
   Future<void> initialize(DesktopSettings settings) async {
