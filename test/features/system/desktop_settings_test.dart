@@ -8,6 +8,11 @@ void main() {
       const settings = DesktopSettings.defaults();
 
       expect(settings.themeMode, DesktopThemeMode.system);
+      expect(settings.displayDensity, DesktopDisplayDensity.defaultMode);
+      expect(settings.channelSidebarWidth, 240);
+      expect(settings.pinnedChannelIds, isEmpty);
+      expect(settings.inputDeviceId, isEmpty);
+      expect(settings.outputDeviceId, isEmpty);
       expect(settings.accentColorValue, 0xFF5865F2);
       expect(settings.minimizeToTray, isTrue);
       expect(settings.notificationsEnabled, isTrue);
@@ -22,12 +27,22 @@ void main() {
         themeMode: DesktopThemeMode.light,
         accentColorValue: 0xFF00A8FC,
         minimizeToTray: false,
+        displayDensity: DesktopDisplayDensity.spacious,
+        channelSidebarWidth: 312,
+        pinnedChannelIds: const ['channel-1'],
+        inputDeviceId: 'mic-1',
+        outputDeviceId: '7',
       );
 
       expect(original, const DesktopSettings.defaults());
       expect(changed.themeMode, DesktopThemeMode.light);
       expect(changed.accentColorValue, 0xFF00A8FC);
       expect(changed.minimizeToTray, isFalse);
+      expect(changed.displayDensity, DesktopDisplayDensity.spacious);
+      expect(changed.channelSidebarWidth, 312);
+      expect(changed.pinnedChannelIds, ['channel-1']);
+      expect(changed.inputDeviceId, 'mic-1');
+      expect(changed.outputDeviceId, '7');
     });
   });
 
@@ -42,6 +57,11 @@ void main() {
         notificationsEnabled: false,
         globalShortcutEnabled: true,
         autoUpdateEnabled: false,
+        displayDensity: DesktopDisplayDensity.compact,
+        channelSidebarWidth: 300,
+        pinnedChannelIds: ['channel-1', 'dm-1'],
+        inputDeviceId: 'mic-1',
+        outputDeviceId: '7',
       );
 
       await repository.save(settings);
@@ -66,6 +86,20 @@ void main() {
 
       expect(settings.themeMode, DesktopThemeMode.system);
       expect(settings.accentColorValue, 0xFF5865F2);
+      expect(settings.displayDensity, DesktopDisplayDensity.defaultMode);
+      expect(settings.channelSidebarWidth, 240);
+    });
+
+    test('채널 목록 폭은 Discord 데스크톱의 안전 범위로 제한한다', () async {
+      final storage = _MemorySettingsStorage(
+        '{"channelSidebarWidth":999,"displayDensity":"spacious"}',
+      );
+      final repository = JsonDesktopSettingsRepository(storage);
+
+      final settings = await repository.load();
+
+      expect(settings.channelSidebarWidth, 360);
+      expect(settings.displayDensity, DesktopDisplayDensity.spacious);
     });
   });
 }

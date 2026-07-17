@@ -1,4 +1,5 @@
 import 'package:discord_native/features/workspace/domain/discord_workspace_state.dart';
+import 'package:discord_native/features/workspace/presentation/discord_design_tokens.dart';
 import 'package:flutter/material.dart';
 
 typedef CreateForumPostCallback =
@@ -52,8 +53,10 @@ class ForumChannelPanel extends StatelessWidget {
       children: [
         Container(
           padding: const EdgeInsets.fromLTRB(20, 14, 12, 14),
-          decoration: const BoxDecoration(
-            border: Border(bottom: BorderSide(color: Color(0xFF1F2023))),
+          decoration: BoxDecoration(
+            border: Border(
+              bottom: BorderSide(color: context.discordPalette.divider),
+            ),
           ),
           child: Row(
             children: [
@@ -63,8 +66,8 @@ class ForumChannelPanel extends StatelessWidget {
                   children: [
                     Text(
                       channel.name,
-                      style: const TextStyle(
-                        color: Colors.white,
+                      style: TextStyle(
+                        color: context.discordPalette.text,
                         fontSize: 18,
                         fontWeight: FontWeight.w700,
                       ),
@@ -72,7 +75,9 @@ class ForumChannelPanel extends StatelessWidget {
                     if (channel.topic case final topic?)
                       Text(
                         topic,
-                        style: const TextStyle(color: Color(0xFFB5BAC1)),
+                        style: TextStyle(
+                          color: context.discordPalette.textMuted,
+                        ),
                       ),
                   ],
                 ),
@@ -97,10 +102,10 @@ class ForumChannelPanel extends StatelessWidget {
         ),
         Expanded(
           child: posts.isEmpty
-              ? const Center(
+              ? Center(
                   child: Text(
                     '아직 포럼 글이 없습니다.',
-                    style: TextStyle(color: Color(0xFFB5BAC1)),
+                    style: TextStyle(color: context.discordPalette.textMuted),
                   ),
                 )
               : ListView.builder(

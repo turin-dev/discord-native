@@ -14,9 +14,11 @@ aliases: [Open Questions]
 - 친구 추가·수락·거절·취소·차단·해제·삭제는 구현됐지만 공개 API에 없는 비공식 relationship endpoint이므로 부계정 실기기 검증과 변경 모니터링이 남아 있다.
 - Gateway resume 실패 시 jitter와 close code별 재식별 정책을 보강해야 한다.
 - 공개 API에는 사용자 클라이언트의 server read ACK가 없어 현재 unread는 로컬 상태이며 공식 클라이언트와 동기화되지 않는다.
-- Voice v8, UDP/RTP, Opus, AEAD와 DAVE E2EE 음성 경로는 구현됐지만 실제 Discord 계정 2개를 사용한 장시간 통화, 장치 hot swap, echo cancellation과 noise suppression 검증이 남아 있다.
+- Voice v8, UDP/RTP, Opus, AEAD와 DAVE E2EE 음성 경로 및 시작 시 입력·출력 장치 선택은 구현됐지만 실제 Discord 계정 2개를 사용한 장시간 통화, 통화 중 장치 hot swap, echo cancellation과 noise suppression 검증이 남아 있다.
 - 카메라 화상과 Go Live 화면공유 경로는 구현됐지만 실제 Discord SFU와 복수 참가자 환경의 장시간 호환성 검증이 남아 있다.
-- PTT는 앱 내 pointer hold를 지원하고 앱 토글용 Windows 전역 단축키는 별도다. 입력·출력 장치 선택과 전역 PTT key binding은 후속 범위다.
+- PTT는 앱 내 pointer hold를 지원하고 앱 토글용 Windows 전역 단축키는 별도다. 전역 PTT key binding은 후속 범위다.
+- 공개 Create Message API로 투표 생성·표시는 가능하지만 사용자 계정의 투표 참여 endpoint는 공개 문서에 없어 투표 선택 전송은 구현하지 않는다.
+- channel 고정과 Inbox unread는 로컬 설정·read state이므로 공식 클라이언트와 동기화되지 않는다.
 - 자동 업데이트 배포에는 운영 HTTPS feed와 실제 WinSparkle DSA key pair를 CI secret으로 주입해야 한다. 저장소에는 key를 포함하지 않는다.
 - 공식 클라이언트의 private setting인 서버 폴더·사용자 계정 MFA 자격증명 로그인·서버 read ACK는 안정적인 공개 API가 없어 동일 동작을 보장하지 않는다.
 

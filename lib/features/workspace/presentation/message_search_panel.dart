@@ -1,6 +1,7 @@
 import 'package:discord_native/features/messages/domain/discord_message_search_state.dart';
 import 'package:discord_native/features/messages/domain/discord_message_state.dart';
 import 'package:discord_native/features/workspace/domain/discord_workspace_state.dart';
+import 'package:discord_native/features/workspace/presentation/discord_design_tokens.dart';
 import 'package:flutter/material.dart';
 
 typedef SearchMessagesCallback =
@@ -72,7 +73,7 @@ class _MessageSearchPanelState extends State<MessageSearchPanel> {
   @override
   Widget build(BuildContext context) {
     return ColoredBox(
-      color: const Color(0xFF2B2D31),
+      color: context.discordPalette.sidebar,
       child: SizedBox(
         width: 280,
         child: Column(
@@ -115,7 +116,7 @@ class _MessageSearchPanelState extends State<MessageSearchPanel> {
                 padding: const EdgeInsets.all(12),
                 child: Text(
                   message,
-                  style: const TextStyle(color: Color(0xFFF23F42)),
+                  style: TextStyle(color: context.discordPalette.danger),
                 ),
               ),
             if (widget.state.query.isNotEmpty)
@@ -123,8 +124,8 @@ class _MessageSearchPanelState extends State<MessageSearchPanel> {
                 padding: const EdgeInsets.fromLTRB(12, 4, 12, 8),
                 child: Text(
                   '결과 ${widget.state.totalResults}개',
-                  style: const TextStyle(
-                    color: Color(0xFF949BA4),
+                  style: TextStyle(
+                    color: context.discordPalette.textFaint,
                     fontSize: 12,
                   ),
                 ),
@@ -138,17 +139,20 @@ class _MessageSearchPanelState extends State<MessageSearchPanel> {
 
   Widget _buildResults() {
     if (widget.state.query.isEmpty) {
-      return const Padding(
-        padding: EdgeInsets.all(16),
+      return Padding(
+        padding: const EdgeInsets.all(16),
         child: Text(
           '서버의 메시지 내용을 검색할 수 있습니다.',
-          style: TextStyle(color: Color(0xFF949BA4)),
+          style: TextStyle(color: context.discordPalette.textFaint),
         ),
       );
     }
     if (widget.state.messages.isEmpty && !widget.state.isLoading) {
-      return const Center(
-        child: Text('검색 결과가 없습니다.', style: TextStyle(color: Color(0xFF949BA4))),
+      return Center(
+        child: Text(
+          '검색 결과가 없습니다.',
+          style: TextStyle(color: context.discordPalette.textFaint),
+        ),
       );
     }
     return ListView.builder(
@@ -195,11 +199,11 @@ class _SearchHeader extends StatelessWidget {
       child: Row(
         children: [
           const SizedBox(width: 16),
-          const Expanded(
+          Expanded(
             child: Text(
               '메시지 검색',
               style: TextStyle(
-                color: Colors.white,
+                color: context.discordPalette.text,
                 fontWeight: FontWeight.w700,
               ),
             ),

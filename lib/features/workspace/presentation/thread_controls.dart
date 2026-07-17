@@ -33,29 +33,31 @@ class ThreadConversationHeader extends StatelessWidget {
     return Container(
       height: DiscordLayout.channelHeaderHeight,
       padding: const EdgeInsets.symmetric(horizontal: 16),
-      decoration: const BoxDecoration(
-        color: DiscordColors.chat,
-        border: Border(bottom: BorderSide(color: DiscordColors.divider)),
+      decoration: BoxDecoration(
+        color: context.discordPalette.chat,
+        border: Border(
+          bottom: BorderSide(color: context.discordPalette.divider),
+        ),
       ),
       child: Row(
         children: [
           Icon(
             selected?.isThread == true ? Icons.forum_outlined : Icons.tag,
             size: 22,
-            color: DiscordColors.textFaint,
+            color: context.discordPalette.textFaint,
           ),
           const SizedBox(width: 8),
           Text(
             selected?.name ?? '채널을 선택해 주세요',
-            style: DiscordTextStyles.heading,
+            style: DiscordTextStyles.heading(context),
           ),
           if (selected?.topic case final topic? when topic.isNotEmpty) ...[
-            const Padding(
-              padding: EdgeInsets.symmetric(horizontal: 12),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 12),
               child: SizedBox(
                 width: 1,
                 height: 22,
-                child: ColoredBox(color: DiscordColors.divider),
+                child: ColoredBox(color: context.discordPalette.divider),
               ),
             ),
             Expanded(
@@ -63,8 +65,8 @@ class ThreadConversationHeader extends StatelessWidget {
                 topic,
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
-                style: const TextStyle(
-                  color: DiscordColors.textMuted,
+                style: TextStyle(
+                  color: context.discordPalette.textMuted,
                   fontSize: 13,
                 ),
               ),
@@ -141,7 +143,7 @@ class _HeaderAction extends StatelessWidget {
       padding: EdgeInsets.zero,
       tooltip: tooltip,
       onPressed: onPressed,
-      icon: Icon(icon, size: 20, color: DiscordColors.textMuted),
+      icon: Icon(icon, size: 20, color: context.discordPalette.textMuted),
     );
   }
 }

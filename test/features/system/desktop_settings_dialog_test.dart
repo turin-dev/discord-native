@@ -3,6 +3,7 @@ import 'package:discord_native/core/auth/discord_account_repository.dart';
 import 'package:discord_native/core/auth/discord_account_session_controller.dart';
 import 'package:discord_native/features/system/presentation/desktop_settings_dialog.dart';
 import 'package:discord_native/features/system/presentation/desktop_system_controller.dart';
+import 'package:discord_native/features/voice/domain/discord_audio_device.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -12,6 +13,12 @@ void main() {
     await tester.pumpWidget(
       ProviderScope(
         overrides: [
+          audioDeviceCatalogProvider.overrideWith(
+            (_) async => const DiscordAudioDeviceCatalog(
+              inputDevices: [DiscordAudioDevice(id: 'mic-1', label: 'USB 마이크')],
+              outputDevices: [DiscordAudioDevice(id: '7', label: 'USB 헤드셋')],
+            ),
+          ),
           desktopSystemStateProvider.overrideWith(
             (_) => Stream.value(const DesktopSystemState(isInitialized: true)),
           ),
@@ -36,6 +43,15 @@ void main() {
     expect(find.text('새 메시지 알림 및 소리'), findsOneWidget);
     expect(find.text('전역 단축키 Ctrl+Shift+D'), findsOneWidget);
     expect(find.text('자동 업데이트'), findsOneWidget);
+    expect(find.text('Light'), findsOneWidget);
+    expect(find.text('Ash'), findsOneWidget);
+    expect(find.text('Dark'), findsOneWidget);
+    expect(find.text('Onyx'), findsOneWidget);
+    expect(find.text('Compact'), findsOneWidget);
+    expect(find.text('Default'), findsOneWidget);
+    expect(find.text('Spacious'), findsOneWidget);
+    expect(find.text('입력 장치'), findsOneWidget);
+    expect(find.text('출력 장치'), findsOneWidget);
     expect(find.text('alice'), findsOneWidget);
   });
 
@@ -43,6 +59,9 @@ void main() {
     await tester.pumpWidget(
       ProviderScope(
         overrides: [
+          audioDeviceCatalogProvider.overrideWith(
+            (_) async => const DiscordAudioDeviceCatalog(),
+          ),
           desktopSystemStateProvider.overrideWith(
             (_) => Stream<DesktopSystemState>.error(StateError('settings')),
           ),

@@ -66,7 +66,9 @@ class _MessageBubbleState extends State<MessageBubble> {
           clipBehavior: Clip.none,
           children: [
             ColoredBox(
-              color: hovered ? DiscordColors.hover : Colors.transparent,
+              color: hovered
+                  ? context.discordPalette.hover
+                  : Colors.transparent,
               child: Padding(
                 padding: const EdgeInsets.fromLTRB(16, 3, 16, 3),
                 child: _MessageBody(
@@ -140,7 +142,8 @@ class _MessageContentColumn extends StatelessWidget {
         _MessageHeader(message: message, timeLabel: timeLabel),
         if (message.content.isNotEmpty ||
             message.embeds.isNotEmpty ||
-            message.stickers.isNotEmpty) ...[
+            message.stickers.isNotEmpty ||
+            message.poll != null) ...[
           const SizedBox(height: 2),
           DiscordMessageContent(message: message),
         ],
@@ -172,23 +175,29 @@ class _MessageHeader extends StatelessWidget {
       children: [
         Text(
           message.authorName,
-          style: const TextStyle(
-            color: Colors.white,
+          style: TextStyle(
+            color: context.discordPalette.text,
             fontWeight: FontWeight.w600,
           ),
         ),
         const SizedBox(width: 8),
         Text(
           timeLabel,
-          style: const TextStyle(color: Color(0xFF949BA4), fontSize: 11),
+          style: TextStyle(
+            color: context.discordPalette.textFaint,
+            fontSize: 11,
+          ),
         ),
         if (message.pinned) ...[
           const SizedBox(width: 8),
-          const Icon(Icons.push_pin, size: 13, color: Color(0xFFF0B232)),
+          Icon(Icons.push_pin, size: 13, color: context.discordPalette.warning),
           const SizedBox(width: 3),
-          const Text(
+          Text(
             '고정됨',
-            style: TextStyle(color: Color(0xFFF0B232), fontSize: 11),
+            style: TextStyle(
+              color: context.discordPalette.warning,
+              fontSize: 11,
+            ),
           ),
         ],
       ],
@@ -205,8 +214,8 @@ class _MessageHoverActions extends StatelessWidget {
   Widget build(BuildContext context) {
     return DecoratedBox(
       decoration: BoxDecoration(
-        color: DiscordColors.sidebar,
-        border: Border.all(color: DiscordColors.divider),
+        color: context.discordPalette.sidebar,
+        border: Border.all(color: context.discordPalette.divider),
         borderRadius: const BorderRadius.all(DiscordRadius.small),
         boxShadow: const [
           BoxShadow(color: Colors.black38, blurRadius: 4, offset: Offset(0, 2)),
@@ -260,7 +269,7 @@ class _HoverAction extends StatelessWidget {
       padding: EdgeInsets.zero,
       tooltip: tooltip,
       onPressed: onPressed,
-      icon: Icon(icon, size: 18, color: DiscordColors.textMuted),
+      icon: Icon(icon, size: 18, color: context.discordPalette.textMuted),
     );
   }
 }
@@ -287,16 +296,16 @@ class MessageReplyPreview extends StatelessWidget {
       padding: const EdgeInsets.only(bottom: 5),
       child: Row(
         children: [
-          const Icon(
+          Icon(
             Icons.subdirectory_arrow_right,
             size: 16,
-            color: Color(0xFF949BA4),
+            color: context.discordPalette.textFaint,
           ),
           const SizedBox(width: 4),
           Text(
             '${message.authorName}에게 답장',
-            style: const TextStyle(
-              color: Color(0xFFB5BAC1),
+            style: TextStyle(
+              color: context.discordPalette.textMuted,
               fontSize: 12,
               fontWeight: FontWeight.w600,
             ),
@@ -307,7 +316,10 @@ class MessageReplyPreview extends StatelessWidget {
               message.displayContent,
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
-              style: const TextStyle(color: Color(0xFF949BA4), fontSize: 12),
+              style: TextStyle(
+                color: context.discordPalette.textFaint,
+                fontSize: 12,
+              ),
             ),
           ),
         ],
@@ -337,8 +349,8 @@ class MessageAttachmentCard extends StatelessWidget {
       constraints: const BoxConstraints(maxWidth: 420),
       margin: const EdgeInsets.only(top: 8),
       decoration: BoxDecoration(
-        color: const Color(0xFF2B2D31),
-        border: Border.all(color: const Color(0xFF1E1F22)),
+        color: context.discordPalette.sidebar,
+        border: Border.all(color: context.discordPalette.divider),
         borderRadius: BorderRadius.circular(6),
       ),
       clipBehavior: Clip.antiAlias,
@@ -352,16 +364,22 @@ class MessageAttachmentCard extends StatelessWidget {
               width: 420,
               height: 220,
               fit: BoxFit.contain,
-              placeholder: (context, _) => const SizedBox(
+              placeholder: (context, _) => SizedBox(
                 height: 120,
                 child: Center(
-                  child: Icon(Icons.image, color: Color(0xFF949BA4)),
+                  child: Icon(
+                    Icons.image,
+                    color: context.discordPalette.textFaint,
+                  ),
                 ),
               ),
-              errorWidget: (context, _, _) => const SizedBox(
+              errorWidget: (context, _, _) => SizedBox(
                 height: 80,
                 child: Center(
-                  child: Icon(Icons.broken_image, color: Color(0xFF949BA4)),
+                  child: Icon(
+                    Icons.broken_image,
+                    color: context.discordPalette.textFaint,
+                  ),
                 ),
               ),
             ),
@@ -377,7 +395,7 @@ class MessageAttachmentCard extends StatelessWidget {
                       : attachment.isVideo
                       ? Icons.movie_outlined
                       : Icons.insert_drive_file,
-                  color: const Color(0xFF5865F2),
+                  color: context.discordPalette.brand,
                 ),
                 const SizedBox(width: 10),
                 Expanded(
@@ -388,15 +406,15 @@ class MessageAttachmentCard extends StatelessWidget {
                         attachment.filename,
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
-                          color: Color(0xFF00A8FC),
+                        style: TextStyle(
+                          color: context.discordPalette.link,
                           fontWeight: FontWeight.w600,
                         ),
                       ),
                       Text(
                         sizeLabel,
-                        style: const TextStyle(
-                          color: Color(0xFF949BA4),
+                        style: TextStyle(
+                          color: context.discordPalette.textFaint,
                           fontSize: 11,
                         ),
                       ),
@@ -465,12 +483,12 @@ class MessageReactionList extends StatelessWidget {
               child: DecoratedBox(
                 decoration: BoxDecoration(
                   color: reaction.me
-                      ? const Color(0xFF3C4270)
-                      : const Color(0xFF2B2D31),
+                      ? context.discordPalette.brand.withValues(alpha: 0.24)
+                      : context.discordPalette.sidebar,
                   border: Border.all(
                     color: reaction.me
-                        ? const Color(0xFF5865F2)
-                        : const Color(0xFF3F4147),
+                        ? context.discordPalette.brand
+                        : context.discordPalette.divider,
                   ),
                   borderRadius: BorderRadius.circular(8),
                 ),
@@ -481,7 +499,7 @@ class MessageReactionList extends StatelessWidget {
                   ),
                   child: Text(
                     '${reaction.emojiName} ${reaction.count}',
-                    style: const TextStyle(color: Color(0xFFDBDEE1)),
+                    style: TextStyle(color: context.discordPalette.textNormal),
                   ),
                 ),
               ),

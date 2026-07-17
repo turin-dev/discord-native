@@ -53,7 +53,7 @@ class WorkspaceRightPanel extends StatelessWidget {
       length: 2,
       initialIndex: directMessages || hasActiveSearch ? 0 : 1,
       child: ColoredBox(
-        color: DiscordColors.sidebar,
+        color: context.discordPalette.sidebar,
         child: SizedBox(
           width: DiscordLayout.rightPanelWidth,
           child: Column(
@@ -62,7 +62,7 @@ class WorkspaceRightPanel extends StatelessWidget {
                 height: DiscordLayout.channelHeaderHeight,
                 child: TabBar(
                   indicatorSize: TabBarIndicatorSize.tab,
-                  dividerColor: DiscordColors.divider,
+                  dividerColor: context.discordPalette.divider,
                   tabs: directMessages
                       ? const [
                           Tab(icon: Icon(Icons.people_alt), text: '친구'),
@@ -130,10 +130,10 @@ class _GuildMembersPanel extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     if (members.isEmpty) {
-      return const Center(
+      return Center(
         child: Text(
           '동기화된 멤버가 없습니다.',
-          style: TextStyle(color: Color(0xFF949BA4)),
+          style: TextStyle(color: context.discordPalette.textFaint),
         ),
       );
     }
@@ -146,8 +146,8 @@ class _GuildMembersPanel extends StatelessWidget {
           leading: _PresenceAvatar(user: member.user, status: member.status),
           title: Text(
             member.displayName,
-            style: const TextStyle(
-              color: DiscordColors.textMuted,
+            style: TextStyle(
+              color: context.discordPalette.textMuted,
               fontWeight: FontWeight.w600,
             ),
           ),
@@ -155,8 +155,8 @@ class _GuildMembersPanel extends StatelessWidget {
             _presenceLine(member.status, member.activityName),
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
-            style: const TextStyle(
-              color: DiscordColors.textFaint,
+            style: TextStyle(
+              color: context.discordPalette.textFaint,
               fontSize: 11,
             ),
           ),
@@ -209,7 +209,7 @@ class _RelationshipsPanel extends StatelessWidget {
               ? Center(
                   child: Text(
                     emptyMessage,
-                    style: const TextStyle(color: Color(0xFF949BA4)),
+                    style: TextStyle(color: context.discordPalette.textFaint),
                   ),
                 )
               : ListView.builder(
@@ -249,10 +249,10 @@ class _RequestsPanel extends StatelessWidget {
       ('차단한 사용자', state.blocked),
     ];
     if (sections.every((section) => section.$2.isEmpty)) {
-      return const Center(
+      return Center(
         child: Text(
           '요청이나 차단된 사용자가 없습니다.',
-          style: TextStyle(color: Color(0xFF949BA4)),
+          style: TextStyle(color: context.discordPalette.textFaint),
         ),
       );
     }
@@ -451,8 +451,8 @@ class _PeopleSectionLabel extends StatelessWidget {
       padding: const EdgeInsets.fromLTRB(16, 16, 16, 4),
       child: Text(
         label,
-        style: const TextStyle(
-          color: Color(0xFF949BA4),
+        style: TextStyle(
+          color: context.discordPalette.textFaint,
           fontSize: 12,
           fontWeight: FontWeight.w700,
         ),
@@ -485,7 +485,10 @@ Future<void> _showProfile(
           Text('@${user.username}'),
           const SizedBox(height: 8),
           Text(_presenceLine(status, activityName)),
-          Text(detail, style: const TextStyle(color: Color(0xFF949BA4))),
+          Text(
+            detail,
+            style: TextStyle(color: context.discordPalette.textFaint),
+          ),
         ],
       ),
       actions: [

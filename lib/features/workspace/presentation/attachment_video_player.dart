@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:discord_native/features/messages/domain/discord_message_state.dart';
+import 'package:discord_native/features/workspace/presentation/discord_design_tokens.dart';
 import 'package:flutter/material.dart';
 import 'package:video_player/video_player.dart';
 
@@ -164,13 +165,16 @@ class _VideoError extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const Center(
+    return Center(
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(Icons.error_outline, color: Color(0xFFF23F42)),
-          SizedBox(height: 8),
-          Text('영상을 재생할 수 없습니다.', style: TextStyle(color: Color(0xFFDBDEE1))),
+          Icon(Icons.error_outline, color: context.discordPalette.danger),
+          const SizedBox(height: 8),
+          Text(
+            '영상을 재생할 수 없습니다.',
+            style: TextStyle(color: context.discordPalette.textNormal),
+          ),
         ],
       ),
     );

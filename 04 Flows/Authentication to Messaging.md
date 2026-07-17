@@ -2,8 +2,8 @@
 type: flow
 status: active
 tags: [auth, gateway, messaging]
-source_paths: [lib/app/discord_app_controller.dart, lib/features/auth/, lib/features/messages/]
-reviewed_at: 2026-07-16
+source_paths: [lib/app/discord_app_controller.dart, lib/features/auth/, lib/features/messages/, lib/features/workspace/, lib/features/system/]
+reviewed_at: 2026-07-17
 confidence: high
 aliases: [Authentication to Messaging]
 ---
@@ -25,7 +25,7 @@ aliases: [Authentication to Messaging]
 13. 친구 panel은 username 친구 추가, 받은 요청 수락·거절, 보낸 요청 취소와 친구 차단·삭제·차단 해제를 relationship REST repository로 보낸다.
 14. 파괴적 관계 변경은 확인 dialog를 거치며 성공 뒤 새 people state를 즉시 표시하고 후속 RELATIONSHIP dispatch로 재동기화한다.
 15. MESSAGE dispatch를 현재 채널 상태에 합친다.
-16. composer는 일반 메시지와 답장을 전송하고 REST 응답을 즉시 현재 목록에 추가한다.
+16. composer는 일반 메시지·답장·투표를 전송하고 REST 응답을 즉시 현재 목록에 추가한다.
 17. composer 입력은 `/typing` 요청으로 전달하되 8초 동안 중복 호출을 억제한다.
 18. TYPING_START는 자신을 제외하고 표시하며 새 message 또는 10초 만료 시 제거한다.
 19. 파일 선택 결과는 MIME type과 바이트로 정규화되며, 최대 10개·총 25 MiB 검증 후 `payload_json`과 `files[n]` multipart 요청으로 전송된다.
@@ -41,7 +41,9 @@ aliases: [Authentication to Messaging]
 29. 소유 메시지는 작업 메뉴에서 편집·삭제하고, 모든 표시 메시지는 고정·해제 endpoint로 라우팅한다.
 30. REST 응답은 즉시 불변 message state에 반영하고 partial MESSAGE_UPDATE와 MESSAGE_DELETE dispatch가 후속 상태를 동기화한다.
 31. reaction 선택은 현재 사용자의 추가·제거 endpoint로 라우팅한다.
-32. 로그아웃은 secure storage, 로컬 read state와 Gateway 연결을 정리한다.
+32. title bar는 방문한 channel history의 뒤로·앞으로 이동과 로컬 unread Inbox를 제공한다.
+33. channel 고정, sidebar 폭, 표시 밀도와 테마는 desktop 설정에 저장해 다음 실행에 복원한다.
+34. 로그아웃은 secure storage, 로컬 read state와 Gateway 연결을 정리한다.
 
 오류는 사용자 친화적 상태로 변환하며 토큰을 로그에 기록하지 않는다.
 

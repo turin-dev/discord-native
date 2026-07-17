@@ -7,6 +7,7 @@ import 'package:discord_native/features/workspace/presentation/message_actions.d
 import 'package:discord_native/features/workspace/presentation/message_composer.dart';
 import 'package:discord_native/features/workspace/presentation/message_components.dart';
 import 'package:discord_native/features/workspace/presentation/message_pagination_control.dart';
+import 'package:discord_native/features/workspace/presentation/poll_composer_dialog.dart';
 import 'package:discord_native/features/workspace/presentation/thread_controls.dart';
 import 'package:discord_native/features/workspace/presentation/discord_design_tokens.dart';
 import 'package:flutter/material.dart';
@@ -15,6 +16,7 @@ export 'package:discord_native/features/workspace/presentation/message_paginatio
     show LoadOlderMessagesCallback;
 
 typedef SendMessageCallback = Future<void> Function(String content);
+typedef SendPollCallback = Future<void> Function(DiscordPollDraft draft);
 typedef SendStickerCallback = Future<void> Function(String stickerId);
 typedef SendReplyCallback =
     Future<void> Function(String content, String messageId);
@@ -42,6 +44,7 @@ class ConversationPanel extends StatefulWidget {
     required this.canManageMessages,
     required this.canPinMessages,
     required this.onSendMessage,
+    required this.onSendPoll,
     required this.onSendSticker,
     required this.onLoadOlderMessages,
     required this.onSendReply,
@@ -70,6 +73,7 @@ class ConversationPanel extends StatefulWidget {
   final bool canManageMessages;
   final bool canPinMessages;
   final SendMessageCallback? onSendMessage;
+  final SendPollCallback? onSendPoll;
   final SendStickerCallback? onSendSticker;
   final LoadOlderMessagesCallback? onLoadOlderMessages;
   final SendReplyCallback? onSendReply;
@@ -157,6 +161,17 @@ class _ConversationPanelState extends State<ConversationPanel> {
         await widget.onSendSticker?.call(stickerId);
       case null:
         return;
+    }
+  }
+
+  Future<void> _createPoll() async {
+    final callback = widget.onSendPoll;
+    if (callback == null) {
+      return;
+    }
+    final draft = await showPollComposerDialog(context);
+    if (draft != null) {
+      await callback(draft);
     }
   }
 
@@ -252,6 +267,7 @@ class _ConversationPanelState extends State<ConversationPanel> {
                   widget.channel != null &&
                   widget.canSendMessages &&
                   (widget.onSendMessage != null ||
+                      widget.onSendPoll != null ||
                       widget.onSendSticker != null ||
                       widget.onSendReply != null ||
                       widget.onSendAttachments != null),
@@ -261,6 +277,7 @@ class _ConversationPanelState extends State<ConversationPanel> {
               onTyping: widget.onTyping,
               onPickAttachments: _pickAttachments,
               onPickExpression: _pickExpression,
+              onCreatePoll: widget.onSendPoll == null ? null : _createPoll,
               onRemoveAttachment: (file) {
                 _attachments.value = List.unmodifiable(
                   attachments.where((item) => !identical(item, file)),
@@ -308,10 +325,10 @@ class _MessageList extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     if (channel == null) {
-      return const Center(
+      return Center(
         child: Text(
           'Gateway에서 서버와 채널을 기다리고 있습니다.',
-          style: TextStyle(color: Color(0xFFB5BAC1)),
+          style: TextStyle(color: context.discordPalette.textMuted),
         ),
       );
     }
@@ -322,7 +339,7 @@ class _MessageList extends StatelessWidget {
       return Center(
         child: Text(
           state.errorMessage!,
-          style: const TextStyle(color: Color(0xFFF23F42)),
+          style: TextStyle(color: context.discordPalette.danger),
         ),
       );
     }
@@ -332,16 +349,20 @@ class _MessageList extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const CircleAvatar(
+            CircleAvatar(
               radius: 34,
-              backgroundColor: DiscordColors.input,
-              child: Icon(Icons.tag, size: 40, color: DiscordColors.text),
+              backgroundColor: context.discordPalette.input,
+              child: Icon(
+                Icons.tag,
+                size: 40,
+                color: context.discordPalette.text,
+              ),
             ),
             const SizedBox(height: 16),
             Text(
               '#${selectedChannel.name}에 오신 것을 환영합니다!',
-              style: const TextStyle(
-                color: DiscordColors.text,
+              style: TextStyle(
+                color: context.discordPalette.text,
                 fontSize: 24,
                 fontWeight: FontWeight.w800,
               ),
@@ -349,7 +370,7 @@ class _MessageList extends StatelessWidget {
             const SizedBox(height: 6),
             Text(
               '#${selectedChannel.name} 채널의 시작이에요.',
-              style: const TextStyle(color: DiscordColors.textMuted),
+              style: TextStyle(color: context.discordPalette.textMuted),
             ),
           ],
         ),

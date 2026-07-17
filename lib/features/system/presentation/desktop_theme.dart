@@ -6,38 +6,37 @@ ThemeMode materialThemeMode(DesktopThemeMode mode) {
   return switch (mode) {
     DesktopThemeMode.system => ThemeMode.system,
     DesktopThemeMode.light => ThemeMode.light,
+    DesktopThemeMode.ash => ThemeMode.dark,
     DesktopThemeMode.dark => ThemeMode.dark,
+    DesktopThemeMode.onyx => ThemeMode.dark,
   };
 }
 
 ThemeData createDesktopTheme(DesktopSettings settings, Brightness brightness) {
-  final colorScheme = ColorScheme.fromSeed(
-    seedColor: Color(settings.accentColorValue),
-    brightness: brightness,
-  );
+  final palette = _palette(
+    settings.themeMode,
+    brightness,
+  ).copyWith(brand: Color(settings.accentColorValue));
+  final colorScheme =
+      ColorScheme.fromSeed(
+        seedColor: Color(settings.accentColorValue),
+        brightness: brightness,
+      ).copyWith(
+        surface: palette.chat,
+        onSurface: palette.textNormal,
+        error: palette.danger,
+      );
   return ThemeData(
     brightness: brightness,
     colorScheme: colorScheme,
     fontFamily: 'Segoe UI',
-    scaffoldBackgroundColor: brightness == Brightness.dark
-        ? DiscordColors.window
-        : const Color(0xFFF2F3F5),
-    dialogTheme: DialogThemeData(
-      backgroundColor: brightness == Brightness.dark
-          ? const Color(0xFF1E1F22)
-          : Colors.white,
-    ),
-    dividerColor: brightness == Brightness.dark
-        ? DiscordColors.divider
-        : const Color(0xFFD4D7DC),
-    iconTheme: const IconThemeData(color: DiscordColors.textMuted, size: 20),
+    scaffoldBackgroundColor: palette.window,
+    dialogTheme: DialogThemeData(backgroundColor: palette.chat),
+    dividerColor: palette.divider,
+    iconTheme: IconThemeData(color: palette.textMuted, size: 20),
     textTheme: ThemeData(brightness: brightness).textTheme.apply(
-      bodyColor: brightness == Brightness.dark
-          ? DiscordColors.textNormal
-          : const Color(0xFF313338),
-      displayColor: brightness == Brightness.dark
-          ? DiscordColors.text
-          : const Color(0xFF060607),
+      bodyColor: palette.textNormal,
+      displayColor: palette.text,
     ),
     tooltipTheme: const TooltipThemeData(
       decoration: BoxDecoration(
@@ -50,6 +49,20 @@ ThemeData createDesktopTheme(DesktopSettings settings, Brightness brightness) {
         fontWeight: FontWeight.w600,
       ),
     ),
+    extensions: [palette],
     useMaterial3: true,
   );
+}
+
+DiscordPalette _palette(DesktopThemeMode mode, Brightness brightness) {
+  return switch (mode) {
+    DesktopThemeMode.system =>
+      brightness == Brightness.light
+          ? DiscordPalette.light
+          : DiscordPalette.dark,
+    DesktopThemeMode.light => DiscordPalette.light,
+    DesktopThemeMode.ash => DiscordPalette.ash,
+    DesktopThemeMode.dark => DiscordPalette.dark,
+    DesktopThemeMode.onyx => DiscordPalette.onyx,
+  };
 }

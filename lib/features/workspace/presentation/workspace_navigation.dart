@@ -1,4 +1,5 @@
 import 'package:collection/collection.dart';
+import 'package:discord_native/features/system/domain/desktop_settings.dart';
 import 'package:discord_native/features/workspace/data/read_state_repository.dart';
 import 'package:discord_native/features/workspace/domain/discord_workspace_state.dart';
 import 'package:discord_native/features/workspace/presentation/guild_channel_controls.dart';
@@ -8,6 +9,7 @@ import 'package:discord_native/features/workspace/presentation/guild_invite_cont
 import 'package:discord_native/features/voice/domain/discord_voice_ui_state.dart';
 import 'package:discord_native/features/voice/domain/discord_voice_media_state.dart';
 import 'package:discord_native/features/workspace/presentation/workspace_voice_controls.dart';
+import 'package:discord_native/features/workspace/presentation/workspace_user_controls.dart';
 import 'package:discord_native/features/workspace/presentation/discord_design_tokens.dart';
 import 'package:discord_native/features/workspace/presentation/discord_identity.dart';
 import 'package:flutter/material.dart';
@@ -18,19 +20,21 @@ class GuildRail extends StatelessWidget {
     required this.guilds,
     required this.selectedGuildId,
     required this.onSelect,
+    this.density = DesktopDisplayDensity.defaultMode,
     super.key,
   });
 
   final List<DiscordGuild> guilds;
   final String? selectedGuildId;
   final ValueChanged<String> onSelect;
+  final DesktopDisplayDensity density;
 
   @override
   Widget build(BuildContext context) {
     return ColoredBox(
-      color: DiscordColors.guildRail,
+      color: context.discordPalette.guildRail,
       child: SizedBox(
-        width: DiscordLayout.guildRailWidth,
+        width: DiscordLayout.guildRailWidthFor(density),
         child: ListView.builder(
           padding: const EdgeInsets.symmetric(vertical: 8),
           itemCount: guilds.length,
@@ -41,6 +45,7 @@ class GuildRail extends StatelessWidget {
               guild: guild,
               selected: selected,
               onTap: () => onSelect(guild.id),
+              density: density,
             );
           },
         ),
@@ -54,11 +59,13 @@ class _GuildRailItem extends StatelessWidget {
     required this.guild,
     required this.selected,
     required this.onTap,
+    required this.density,
   });
 
   final DiscordGuild guild;
   final bool selected;
   final VoidCallback onTap;
+  final DesktopDisplayDensity density;
 
   @override
   Widget build(BuildContext context) {
@@ -89,8 +96,12 @@ class _GuildRailItem extends StatelessWidget {
               borderRadius: BorderRadius.circular(selected ? 16 : 24),
               onTap: onTap,
               child: guild.isDirectMessages
-                  ? _DirectMessagesIcon(selected: selected)
-                  : DiscordGuildIcon(guild: guild, selected: selected),
+                  ? _DirectMessagesIcon(selected: selected, density: density)
+                  : DiscordGuildIcon(
+                      guild: guild,
+                      selected: selected,
+                      size: DiscordLayout.guildIconSizeFor(density),
+                    ),
             ),
           ),
         ],
@@ -100,18 +111,21 @@ class _GuildRailItem extends StatelessWidget {
 }
 
 class _DirectMessagesIcon extends StatelessWidget {
-  const _DirectMessagesIcon({required this.selected});
+  const _DirectMessagesIcon({required this.selected, required this.density});
 
   final bool selected;
+  final DesktopDisplayDensity density;
 
   @override
   Widget build(BuildContext context) {
     return AnimatedContainer(
       duration: const Duration(milliseconds: 160),
-      width: DiscordLayout.guildIconSize,
-      height: DiscordLayout.guildIconSize,
+      width: DiscordLayout.guildIconSizeFor(density),
+      height: DiscordLayout.guildIconSizeFor(density),
       decoration: BoxDecoration(
-        color: selected ? DiscordColors.brand : DiscordColors.chat,
+        color: selected
+            ? context.discordPalette.brand
+            : context.discordPalette.chat,
         borderRadius: BorderRadius.circular(selected ? 16 : 24),
       ),
       child: const Icon(Icons.discord, color: Colors.white, size: 26),
@@ -129,6 +143,10 @@ class ChannelSidebar extends StatelessWidget {
     required this.readStates,
     required this.onSelect,
     required this.onLogout,
+    this.width = DiscordLayout.channelSidebarWidth,
+    this.density = DesktopDisplayDensity.defaultMode,
+    this.pinnedChannelIds = const {},
+    this.onToggleChannelPinned,
     this.onOpenUserSettings,
     this.voiceUiState = const DiscordVoiceUiState(),
     this.voiceParticipantNames = const {},
@@ -177,6 +195,10 @@ class ChannelSidebar extends StatelessWidget {
   final Map<String, DiscordReadState> readStates;
   final ValueChanged<String> onSelect;
   final VoidCallback onLogout;
+  final double width;
+  final DesktopDisplayDensity density;
+  final Set<String> pinnedChannelIds;
+  final ValueChanged<String>? onToggleChannelPinned;
   final VoidCallback? onOpenUserSettings;
   final DiscordVoiceUiState voiceUiState;
   final Map<String, String> voiceParticipantNames;
@@ -281,10 +303,16 @@ class ChannelSidebar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final pinnedChannels = channels
+        .where(
+          (channel) =>
+              !channel.isCategory && pinnedChannelIds.contains(channel.id),
+        )
+        .toList();
     return ColoredBox(
-      color: DiscordColors.sidebar,
+      color: context.discordPalette.sidebar,
       child: SizedBox(
-        width: DiscordLayout.channelSidebarWidth,
+        width: width,
         child: Column(
           children: [
             _ServerHeader(
@@ -312,6 +340,11 @@ class ChannelSidebar extends StatelessWidget {
               child: ListView(
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
                 children: [
+                  if (pinnedChannels.isNotEmpty) ...[
+                    const _SectionLabel('고정됨'),
+                    for (final channel in pinnedChannels)
+                      ?_channelEntry(context, channel),
+                  ],
                   _SectionLabel(
                     guild?.isDirectMessages == true ? '다이렉트 메시지' : '채널',
                   ),
@@ -322,29 +355,8 @@ class ChannelSidebar extends StatelessWidget {
                         key: ValueKey('category-${channel.id}'),
                         actions: _channelActions(context, channel),
                       )
-                    else if (channel.isTextChannel)
-                      _ChannelTile(
-                        channel: channel,
-                        selected: channel.id == selectedChannelId,
-                        unreadCount: readStates[channel.id]?.unreadCount ?? 0,
-                        onTap: () => onSelect(channel.id),
-                        actions: _channelActions(context, channel),
-                      )
-                    else if (channel.isVoiceChannel &&
-                        onJoinVoiceChannel != null)
-                      VoiceChannelTile(
-                        channel: channel,
-                        active: voiceUiState.voice.channelId == channel.id,
-                        participants: voiceUiState.voice.participantsForChannel(
-                          channel.id,
-                        ),
-                        participantNames: voiceParticipantNames,
-                        onJoin: onJoinVoiceChannel!,
-                        onSetUserVolume: onSetVoiceUserVolume,
-                        watchingStreamKey: voiceUiState.video.watchingStreamKey,
-                        onWatchStream: onWatchVoiceStream,
-                        onStopWatchingStream: onStopWatchingVoiceStream,
-                      ),
+                    else if (!pinnedChannelIds.contains(channel.id))
+                      ?_channelEntry(context, channel),
                 ],
               ),
             ),
@@ -376,6 +388,7 @@ class ChannelSidebar extends StatelessWidget {
               onSetDeafened: onSetVoiceDeafened,
               onLogout: onLogout,
               onOpenSettings: onOpenUserSettings,
+              density: density,
             ),
           ],
         ),
@@ -384,13 +397,60 @@ class ChannelSidebar extends StatelessWidget {
   }
 
   Widget? _channelActions(BuildContext context, DiscordChannel channel) {
-    if (!manageableChannelIds.contains(channel.id)) {
+    final canManage = manageableChannelIds.contains(channel.id);
+    final canPin = !channel.isCategory && onToggleChannelPinned != null;
+    if (!canManage && !canPin) {
       return null;
     }
-    return _ChannelActionsButton(
+    final pinned = pinnedChannelIds.contains(channel.id);
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        if (canPin)
+          IconButton(
+            constraints: const BoxConstraints.tightFor(width: 28, height: 28),
+            padding: EdgeInsets.zero,
+            tooltip: '${channel.name} ${pinned ? '고정 해제' : '고정'}',
+            onPressed: () => onToggleChannelPinned!(channel.id),
+            icon: Icon(
+              pinned ? Icons.push_pin : Icons.push_pin_outlined,
+              size: 15,
+            ),
+          ),
+        if (canManage)
+          _ChannelActionsButton(
+            channel: channel,
+            onEdit: () => _editChannel(context, channel),
+            onDelete: () => _deleteChannel(context, channel),
+          ),
+      ],
+    );
+  }
+
+  Widget? _channelEntry(BuildContext context, DiscordChannel channel) {
+    if (channel.isTextChannel) {
+      return _ChannelTile(
+        channel: channel,
+        selected: channel.id == selectedChannelId,
+        unreadCount: readStates[channel.id]?.unreadCount ?? 0,
+        onTap: () => onSelect(channel.id),
+        actions: _channelActions(context, channel),
+        density: density,
+      );
+    }
+    if (!channel.isVoiceChannel || onJoinVoiceChannel == null) {
+      return null;
+    }
+    return VoiceChannelTile(
       channel: channel,
-      onEdit: () => _editChannel(context, channel),
-      onDelete: () => _deleteChannel(context, channel),
+      active: voiceUiState.voice.channelId == channel.id,
+      participants: voiceUiState.voice.participantsForChannel(channel.id),
+      participantNames: voiceParticipantNames,
+      onJoin: onJoinVoiceChannel!,
+      onSetUserVolume: onSetVoiceUserVolume,
+      watchingStreamKey: voiceUiState.video.watchingStreamKey,
+      onWatchStream: onWatchVoiceStream,
+      onStopWatchingStream: onStopWatchingVoiceStream,
     );
   }
 }
@@ -412,8 +472,10 @@ class _ServerHeader extends StatelessWidget {
       height: DiscordLayout.channelHeaderHeight,
       alignment: Alignment.centerLeft,
       padding: const EdgeInsets.symmetric(horizontal: 16),
-      decoration: const BoxDecoration(
-        border: Border(bottom: BorderSide(color: DiscordColors.divider)),
+      decoration: BoxDecoration(
+        border: Border(
+          bottom: BorderSide(color: context.discordPalette.divider),
+        ),
       ),
       child: Row(
         children: [
@@ -422,7 +484,7 @@ class _ServerHeader extends StatelessWidget {
               name,
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
-              style: DiscordTextStyles.heading,
+              style: DiscordTextStyles.heading(context),
             ),
           ),
           if (onCreateChannel != null)
@@ -456,7 +518,10 @@ class _SectionLabel extends StatelessWidget {
       child: Row(
         children: [
           Expanded(
-            child: Text(label.toUpperCase(), style: DiscordTextStyles.label),
+            child: Text(
+              label.toUpperCase(),
+              style: DiscordTextStyles.label(context),
+            ),
           ),
           ?actions,
         ],
@@ -471,6 +536,7 @@ class _ChannelTile extends StatelessWidget {
     required this.selected,
     required this.unreadCount,
     required this.onTap,
+    required this.density,
     this.actions,
   });
 
@@ -478,19 +544,20 @@ class _ChannelTile extends StatelessWidget {
   final bool selected;
   final int unreadCount;
   final VoidCallback onTap;
+  final DesktopDisplayDensity density;
   final Widget? actions;
 
   @override
   Widget build(BuildContext context) {
     return SizedBox(
-      height: DiscordLayout.channelTileHeight,
+      height: DiscordLayout.channelTileHeightFor(density),
       child: Material(
-        color: selected ? DiscordColors.selected : Colors.transparent,
+        color: selected ? context.discordPalette.selected : Colors.transparent,
         borderRadius: const BorderRadius.all(DiscordRadius.small),
         child: InkWell(
           borderRadius: const BorderRadius.all(DiscordRadius.small),
           onTap: onTap,
-          hoverColor: DiscordColors.hover,
+          hoverColor: context.discordPalette.hover,
           child: Padding(
             padding: EdgeInsets.only(left: channel.isThread ? 26 : 6, right: 4),
             child: Row(
@@ -499,8 +566,8 @@ class _ChannelTile extends StatelessWidget {
                   _channelIcon(channel),
                   size: channel.isThread ? 16 : 20,
                   color: selected
-                      ? DiscordColors.text
-                      : DiscordColors.textFaint,
+                      ? context.discordPalette.text
+                      : context.discordPalette.textFaint,
                 ),
                 const SizedBox(width: 6),
                 Expanded(
@@ -508,12 +575,12 @@ class _ChannelTile extends StatelessWidget {
                     channel.isArchived ? '${channel.name} · 보관됨' : channel.name,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
-                    style: DiscordTextStyles.channel.copyWith(
+                    style: DiscordTextStyles.channel(context).copyWith(
                       color: selected
-                          ? DiscordColors.text
+                          ? context.discordPalette.text
                           : unreadCount > 0
-                          ? DiscordColors.textNormal
-                          : DiscordColors.textMuted,
+                          ? context.discordPalette.textNormal
+                          : context.discordPalette.textMuted,
                       fontWeight: unreadCount > 0
                           ? FontWeight.w700
                           : FontWeight.w500,
@@ -557,9 +624,9 @@ class _UnreadBadge extends StatelessWidget {
       key: ValueKey('unread-$channelId'),
       constraints: const BoxConstraints(minWidth: 20, minHeight: 18),
       padding: const EdgeInsets.symmetric(horizontal: 5),
-      decoration: const BoxDecoration(
-        color: DiscordColors.danger,
-        borderRadius: BorderRadius.all(Radius.circular(9)),
+      decoration: BoxDecoration(
+        color: context.discordPalette.danger,
+        borderRadius: const BorderRadius.all(Radius.circular(9)),
       ),
       alignment: Alignment.center,
       child: Text(
@@ -588,8 +655,8 @@ class _ChannelActionsButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MenuAnchor(
-      style: const MenuStyle(
-        backgroundColor: WidgetStatePropertyAll(DiscordColors.sidebar),
+      style: MenuStyle(
+        backgroundColor: WidgetStatePropertyAll(context.discordPalette.sidebar),
       ),
       menuChildren: [
         MenuItemButton(onPressed: onEdit, child: const Text('채널 편집')),
@@ -615,6 +682,7 @@ class _UserPanel extends StatelessWidget {
     this.onSetMuted,
     this.onSetDeafened,
     this.onOpenSettings,
+    this.density = DesktopDisplayDensity.defaultMode,
   });
 
   final DiscordUser? user;
@@ -624,20 +692,21 @@ class _UserPanel extends StatelessWidget {
   final ValueChanged<bool>? onSetMuted;
   final ValueChanged<bool>? onSetDeafened;
   final VoidCallback? onOpenSettings;
+  final DesktopDisplayDensity density;
 
   @override
   Widget build(BuildContext context) {
     return ColoredBox(
-      color: DiscordColors.sidebarFooter,
+      color: context.discordPalette.sidebarFooter,
       child: SizedBox(
-        height: DiscordLayout.userPanelHeight,
+        height: DiscordLayout.userPanelHeightFor(density),
         child: Row(
           children: [
             const SizedBox(width: 8),
             DiscordUserAvatar(
               user: user,
               radius: 16,
-              statusColor: DiscordColors.positive,
+              statusColor: context.discordPalette.positive,
             ),
             const SizedBox(width: 7),
             Expanded(
@@ -649,30 +718,30 @@ class _UserPanel extends StatelessWidget {
                     user?.displayName ?? user?.username ?? '연결 중',
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
-                      color: DiscordColors.text,
+                    style: TextStyle(
+                      color: context.discordPalette.text,
                       fontSize: 13,
                       fontWeight: FontWeight.w600,
                     ),
                   ),
                   Text(
                     connectionLabel,
-                    style: const TextStyle(
-                      color: DiscordColors.textFaint,
+                    style: TextStyle(
+                      color: context.discordPalette.textFaint,
                       fontSize: 10,
                     ),
                   ),
                 ],
               ),
             ),
-            _UserActionButton(
+            WorkspaceUserActionButton(
               tooltip: voiceUiState.voice.selfMute ? '음소거 해제' : '음소거',
               onPressed: onSetMuted == null
                   ? null
                   : () => onSetMuted!(!voiceUiState.voice.selfMute),
               icon: voiceUiState.voice.selfMute ? Icons.mic_off : Icons.mic,
             ),
-            _UserActionButton(
+            WorkspaceUserActionButton(
               tooltip: voiceUiState.voice.selfDeaf ? '듣기 활성화' : '듣기 끄기',
               onPressed: onSetDeafened == null
                   ? null
@@ -681,72 +750,13 @@ class _UserPanel extends StatelessWidget {
                   ? Icons.headset_off
                   : Icons.headphones,
             ),
-            _UserMenu(onOpenSettings: onOpenSettings, onLogout: onLogout),
+            WorkspaceUserMenu(
+              onOpenSettings: onOpenSettings,
+              onLogout: onLogout,
+            ),
           ],
         ),
       ),
-    );
-  }
-}
-
-class _UserActionButton extends StatelessWidget {
-  const _UserActionButton({
-    required this.tooltip,
-    required this.onPressed,
-    required this.icon,
-  });
-
-  final String tooltip;
-  final VoidCallback? onPressed;
-  final IconData icon;
-
-  @override
-  Widget build(BuildContext context) {
-    return IconButton(
-      constraints: const BoxConstraints.tightFor(width: 30, height: 30),
-      padding: EdgeInsets.zero,
-      tooltip: tooltip,
-      onPressed: onPressed,
-      icon: Icon(icon, size: 18, color: DiscordColors.textMuted),
-    );
-  }
-}
-
-enum _UserMenuAction { settings, logout }
-
-class _UserMenu extends StatelessWidget {
-  const _UserMenu({required this.onOpenSettings, required this.onLogout});
-
-  final VoidCallback? onOpenSettings;
-  final VoidCallback onLogout;
-
-  @override
-  Widget build(BuildContext context) {
-    return PopupMenuButton<_UserMenuAction>(
-      tooltip: '사용자 메뉴',
-      constraints: const BoxConstraints.tightFor(width: 30, height: 30),
-      padding: EdgeInsets.zero,
-      icon: const Icon(
-        Icons.settings,
-        size: 18,
-        color: DiscordColors.textMuted,
-      ),
-      onSelected: (action) {
-        switch (action) {
-          case _UserMenuAction.settings:
-            onOpenSettings?.call();
-          case _UserMenuAction.logout:
-            onLogout();
-        }
-      },
-      itemBuilder: (_) => [
-        if (onOpenSettings != null)
-          const PopupMenuItem(
-            value: _UserMenuAction.settings,
-            child: Text('사용자 설정'),
-          ),
-        const PopupMenuItem(value: _UserMenuAction.logout, child: Text('로그아웃')),
-      ],
     );
   }
 }

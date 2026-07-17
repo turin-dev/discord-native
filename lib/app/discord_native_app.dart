@@ -56,6 +56,13 @@ class _AppHome extends ConsumerWidget {
         );
     final videoCapture = ref.read(videoCaptureProvider);
     final screenCapture = ref.read(screenCaptureProvider);
+    final settings = ref
+        .watch(desktopSystemStateProvider)
+        .when(
+          data: (value) => value.settings,
+          error: (_, _) => const DesktopSettings.defaults(),
+          loading: DesktopSettings.defaults,
+        );
     return switch (state.phase) {
       DiscordAppPhase.booting => const _StartupPage(),
       DiscordAppPhase.signedOut || DiscordAppPhase.failure => LoginPage(
@@ -79,6 +86,29 @@ class _AppHome extends ConsumerWidget {
         voiceUiState: state.voiceUiState,
         localVideoStream: videoCapture.previewStream,
         localScreenStream: screenCapture.previewStream,
+        displayDensity: settings.displayDensity,
+        channelSidebarWidth: settings.channelSidebarWidth,
+        pinnedChannelIds: Set.unmodifiable(settings.pinnedChannelIds),
+        onToggleChannelPinned: (channelId) {
+          final pinned = settings.pinnedChannelIds.contains(channelId);
+          final nextIds = pinned
+              ? settings.pinnedChannelIds
+                    .where((id) => id != channelId)
+                    .toList()
+              : [...settings.pinnedChannelIds, channelId];
+          unawaited(
+            ref
+                .read(desktopSystemControllerProvider)
+                .updateSettings(settings.copyWith(pinnedChannelIds: nextIds)),
+          );
+        },
+        onChannelSidebarWidthChanged: (width) {
+          unawaited(
+            ref
+                .read(desktopSystemControllerProvider)
+                .updateSettings(settings.copyWith(channelSidebarWidth: width)),
+          );
+        },
         onSelectGuild: controller.selectGuild,
         onSelectChannel: controller.selectChannel,
         onJoinVoiceChannel: (channelId) {
@@ -116,6 +146,7 @@ class _AppHome extends ConsumerWidget {
           unawaited(controller.stopWatchingVoiceStream());
         },
         onSendMessage: controller.sendMessage,
+        onSendPoll: controller.sendPoll,
         onSendSticker: controller.sendSticker,
         onTyping: () => unawaited(controller.triggerTyping()),
         onLoadOlderMessages: controller.loadOlderMessages,

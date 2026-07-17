@@ -4,6 +4,7 @@ import 'package:discord_native/features/voice/domain/discord_voice_media_state.d
 import 'package:discord_native/features/voice/domain/discord_voice_state.dart';
 import 'package:discord_native/features/voice/domain/discord_voice_ui_state.dart';
 import 'package:discord_native/features/workspace/domain/discord_workspace_state.dart';
+import 'package:discord_native/features/workspace/presentation/discord_design_tokens.dart';
 import 'package:discord_native/features/video/domain/discord_video_ui_state.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_webrtc/flutter_webrtc.dart';
@@ -41,17 +42,21 @@ final class VoiceChannelTile extends StatelessWidget {
           key: ValueKey('voice-channel-${channel.id}'),
           dense: true,
           selected: active,
-          selectedTileColor: const Color(0xFF404249),
+          selectedTileColor: context.discordPalette.selected,
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
           contentPadding: const EdgeInsets.only(left: 12, right: 8),
           leading: Icon(
             active ? Icons.volume_up : Icons.volume_up_outlined,
-            color: active ? const Color(0xFF23A55A) : const Color(0xFF949BA4),
+            color: active
+                ? context.discordPalette.positive
+                : context.discordPalette.textFaint,
           ),
           title: Text(
             channel.name,
             style: TextStyle(
-              color: active ? Colors.white : const Color(0xFFB5BAC1),
+              color: active
+                  ? context.discordPalette.text
+                  : context.discordPalette.textMuted,
             ),
           ),
           onTap: () => onJoin(channel.id),
@@ -98,28 +103,31 @@ final class _VoiceParticipantRow extends StatelessWidget {
       padding: const EdgeInsets.fromLTRB(44, 3, 12, 3),
       child: Row(
         children: [
-          const CircleAvatar(
+          CircleAvatar(
             radius: 9,
-            backgroundColor: Color(0xFF5865F2),
-            child: Icon(Icons.person, size: 12, color: Colors.white),
+            backgroundColor: context.discordPalette.brand,
+            child: const Icon(Icons.person, size: 12, color: Colors.white),
           ),
           const SizedBox(width: 8),
           Expanded(
             child: Text(
               name,
               overflow: TextOverflow.ellipsis,
-              style: const TextStyle(color: Color(0xFFB5BAC1), fontSize: 12),
+              style: TextStyle(
+                color: context.discordPalette.textMuted,
+                fontSize: 12,
+              ),
             ),
           ),
           if (muted)
-            const Icon(Icons.mic_off, size: 14, color: Color(0xFFF23F42)),
+            Icon(Icons.mic_off, size: 14, color: context.discordPalette.danger),
           if (deafened)
-            const Padding(
-              padding: EdgeInsets.only(left: 4),
+            Padding(
+              padding: const EdgeInsets.only(left: 4),
               child: Icon(
                 Icons.headset_off,
                 size: 14,
-                color: Color(0xFFF23F42),
+                color: context.discordPalette.danger,
               ),
             ),
           if (participant.selfStream &&
@@ -139,7 +147,7 @@ final class _VoiceParticipantRow extends StatelessWidget {
                     ? Icons.stop_screen_share_outlined
                     : Icons.live_tv_outlined,
                 size: 16,
-                color: const Color(0xFF23A55A),
+                color: context.discordPalette.positive,
               ),
             ),
           if (onSetVolume != null)
@@ -154,10 +162,10 @@ final class _VoiceParticipantRow extends StatelessWidget {
                 PopupMenuItem(value: 1.5, child: Text('150%')),
                 PopupMenuItem(value: 2, child: Text('200%')),
               ],
-              icon: const Icon(
+              icon: Icon(
                 Icons.volume_up,
                 size: 14,
-                color: Color(0xFFB5BAC1),
+                color: context.discordPalette.textMuted,
               ),
             ),
         ],
@@ -200,7 +208,7 @@ final class VoiceConnectionPanel extends StatelessWidget {
   Widget build(BuildContext context) {
     final voice = state.voice;
     return ColoredBox(
-      color: const Color(0xFF232428),
+      color: context.discordPalette.sidebarFooter,
       child: Padding(
         padding: const EdgeInsets.fromLTRB(12, 10, 8, 8),
         child: Column(
@@ -210,8 +218,8 @@ final class VoiceConnectionPanel extends StatelessWidget {
               _connectionLabel(state),
               style: TextStyle(
                 color: state.errorMessage == null
-                    ? const Color(0xFF23A55A)
-                    : const Color(0xFFF23F42),
+                    ? context.discordPalette.positive
+                    : context.discordPalette.danger,
                 fontSize: 12,
                 fontWeight: FontWeight.w700,
               ),
@@ -219,14 +227,20 @@ final class VoiceConnectionPanel extends StatelessWidget {
             Text(
               channelName,
               overflow: TextOverflow.ellipsis,
-              style: const TextStyle(color: Color(0xFFB5BAC1), fontSize: 11),
+              style: TextStyle(
+                color: context.discordPalette.textMuted,
+                fontSize: 11,
+              ),
             ),
             if (state.errorMessage case final error?)
               Text(
                 error,
                 maxLines: 2,
                 overflow: TextOverflow.ellipsis,
-                style: const TextStyle(color: Color(0xFFF23F42), fontSize: 10),
+                style: TextStyle(
+                  color: context.discordPalette.danger,
+                  fontSize: 10,
+                ),
               ),
             if (localVideoStream != null && state.video.cameraEnabled)
               _LocalVideoPreview(stream: localVideoStream!),
@@ -258,7 +272,7 @@ final class VoiceConnectionPanel extends StatelessWidget {
                       ? null
                       : () => onSetCameraEnabled(!state.video.cameraEnabled),
                   color: state.video.cameraEnabled
-                      ? const Color(0xFF23A55A)
+                      ? context.discordPalette.positive
                       : null,
                   icon: Icon(
                     state.video.cameraEnabled
@@ -282,7 +296,7 @@ final class VoiceConnectionPanel extends StatelessWidget {
                           !state.video.screenShareEnabled,
                         ),
                   color: state.video.screenShareEnabled
-                      ? const Color(0xFF23A55A)
+                      ? context.discordPalette.positive
                       : null,
                   icon: Icon(
                     state.video.screenShareEnabled
@@ -341,7 +355,7 @@ final class VoiceConnectionPanel extends StatelessWidget {
                   key: const ValueKey('voice-leave-button'),
                   tooltip: '음성 연결 끊기',
                   onPressed: onLeave,
-                  color: const Color(0xFFF23F42),
+                  color: context.discordPalette.danger,
                   icon: const Icon(Icons.call_end),
                 ),
               ],
@@ -358,8 +372,8 @@ final class VoiceConnectionPanel extends StatelessWidget {
                   alignment: Alignment.center,
                   decoration: BoxDecoration(
                     color: state.media.pushToTalkPressed
-                        ? const Color(0xFF23A55A)
-                        : const Color(0xFF404249),
+                        ? context.discordPalette.positive
+                        : context.discordPalette.selected,
                     borderRadius: BorderRadius.circular(4),
                   ),
                   child: const Text('눌러서 말하기'),

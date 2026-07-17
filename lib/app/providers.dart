@@ -18,6 +18,7 @@ import 'package:discord_native/features/system/data/windows_desktop_system_bridg
 import 'package:discord_native/features/system/domain/desktop_system_bridge.dart';
 import 'package:discord_native/features/system/presentation/desktop_system_controller.dart';
 import 'package:discord_native/features/voice/data/discord_dave_session.dart';
+import 'package:discord_native/features/voice/data/discord_audio_device_catalog.dart';
 import 'package:discord_native/features/voice/data/discord_opus_codec.dart';
 import 'package:discord_native/features/voice/data/discord_voice_coordinator.dart';
 import 'package:discord_native/features/voice/data/discord_voice_gateway_client.dart';
@@ -27,6 +28,7 @@ import 'package:discord_native/features/voice/data/record_discord_microphone_cap
 import 'package:discord_native/features/voice/data/soloud_discord_voice_playback.dart';
 import 'package:discord_native/features/video/data/flutter_discord_video_capture.dart';
 import 'package:discord_native/features/video/data/native_discord_voice_rtc_transport.dart';
+import 'package:discord_native/features/voice/domain/discord_audio_device.dart';
 import 'package:discord_native/features/workspace/data/discord_direct_message_repository.dart';
 import 'package:discord_native/features/workspace/data/discord_channel_management_repository.dart';
 import 'package:discord_native/features/workspace/data/discord_relationship_repository.dart';
@@ -97,6 +99,12 @@ final desktopSystemStateProvider = StreamProvider<DesktopSystemState>((ref) {
   return ref.watch(desktopSystemControllerProvider).states;
 });
 
+final audioDeviceCatalogProvider = FutureProvider<DiscordAudioDeviceCatalog>((
+  ref,
+) {
+  return loadDiscordAudioDeviceCatalog();
+});
+
 final gatewayConnectionProvider = Provider<DiscordGatewayConnection>((ref) {
   return DiscordGatewayClient(transport: WebSocketGatewayTransport());
 });
@@ -146,6 +154,7 @@ final appControllerProvider = Provider<DiscordAppController>((ref) {
       gateway,
       videoCapture,
       screenCapture,
+      desktopSystem,
     ),
     attachmentDownloadService:
         DiscordAttachmentDownloadService.platformDefault(),
@@ -217,6 +226,7 @@ DiscordVoiceCoordinator _createVoiceCoordinator(
   DiscordGatewayConnection gateway,
   FlutterDiscordVideoCapture videoCapture,
   FlutterDiscordVideoCapture screenCapture,
+  DesktopSystemController desktopSystem,
 ) {
   return DiscordVoiceCoordinator(
     mainGateway: gateway,
@@ -224,9 +234,17 @@ DiscordVoiceCoordinator _createVoiceCoordinator(
     streamNetworkFactory: _createVoiceNetworkConnection,
     videoCapture: videoCapture,
     screenCapture: screenCapture,
-    mediaFactory: _createVoiceMediaConnection,
-    streamMediaFactory: (network) =>
-        _createVoiceMediaConnection(network, captureInput: false),
+    mediaFactory: (network) => _createVoiceMediaConnection(
+      network,
+      inputDeviceId: desktopSystem.state.settings.inputDeviceId,
+      outputDeviceId: desktopSystem.state.settings.outputDeviceId,
+    ),
+    streamMediaFactory: (network) => _createVoiceMediaConnection(
+      network,
+      captureInput: false,
+      inputDeviceId: desktopSystem.state.settings.inputDeviceId,
+      outputDeviceId: desktopSystem.state.settings.outputDeviceId,
+    ),
   );
 }
 
@@ -250,14 +268,16 @@ DiscordVoiceNetworkConnection _createVoiceNetworkConnection() {
 DiscordVoiceMediaConnection _createVoiceMediaConnection(
   DiscordVoiceMediaNetwork network, {
   bool captureInput = true,
+  String inputDeviceId = '',
+  String outputDeviceId = '',
 }) {
   final opus = NativeDiscordOpusCodec.open(libraryPath: 'opus.dll');
   final random = Random.secure();
   return DiscordVoiceMediaEngine(
     network: network,
-    microphone: RecordDiscordMicrophoneCapture(),
+    microphone: RecordDiscordMicrophoneCapture(inputDeviceId: inputDeviceId),
     opus: opus,
-    playback: SoloudDiscordVoicePlayback(),
+    playback: SoloudDiscordVoicePlayback(outputDeviceId: outputDeviceId),
     captureInput: captureInput,
     initialSequence: random.nextInt(0x10000),
     initialTimestamp: _nextUint32(random),

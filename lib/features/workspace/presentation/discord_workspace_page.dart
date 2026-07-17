@@ -1,6 +1,8 @@
 import 'dart:async';
 
+import 'package:discord_native/features/system/domain/desktop_settings.dart';
 import 'package:discord_native/features/workspace/domain/discord_workspace_state.dart';
+import 'package:discord_native/features/workspace/domain/workspace_navigation_history.dart';
 import 'package:collection/collection.dart';
 import 'package:discord_native/features/messages/domain/discord_message_state.dart';
 import 'package:discord_native/features/messages/domain/discord_typing_state.dart';
@@ -26,7 +28,7 @@ import 'package:discord_native/features/voice/domain/discord_voice_media_state.d
 import 'package:flutter/material.dart';
 import 'package:flutter_webrtc/flutter_webrtc.dart';
 
-class DiscordWorkspacePage extends StatelessWidget {
+class DiscordWorkspacePage extends StatefulWidget {
   const DiscordWorkspacePage({
     required this.state,
     required this.selectedGuildId,
@@ -41,6 +43,7 @@ class DiscordWorkspacePage extends StatelessWidget {
     this.typingUsers = const [],
     this.onTyping,
     this.onSendMessage,
+    this.onSendPoll,
     this.onSendSticker,
     this.onLoadOlderMessages,
     this.onSendReply,
@@ -98,6 +101,11 @@ class DiscordWorkspacePage extends StatelessWidget {
     this.onStopWatchingVoiceStream,
     this.localVideoStream,
     this.localScreenStream,
+    this.displayDensity = DesktopDisplayDensity.defaultMode,
+    this.channelSidebarWidth = DesktopSettings.defaultChannelSidebarWidth,
+    this.onChannelSidebarWidthChanged,
+    this.pinnedChannelIds = const {},
+    this.onToggleChannelPinned,
     super.key,
   });
 
@@ -123,12 +131,18 @@ class DiscordWorkspacePage extends StatelessWidget {
   final VoidCallback? onStopWatchingVoiceStream;
   final MediaStream? localVideoStream;
   final MediaStream? localScreenStream;
+  final DesktopDisplayDensity displayDensity;
+  final double channelSidebarWidth;
+  final ValueChanged<double>? onChannelSidebarWidthChanged;
+  final Set<String> pinnedChannelIds;
+  final ValueChanged<String>? onToggleChannelPinned;
   final String? selectedGuildId;
   final String? selectedChannelId;
   final String connectionLabel;
   final ValueChanged<String> onSelectGuild;
   final ValueChanged<String> onSelectChannel;
   final SendMessageCallback? onSendMessage;
+  final SendPollCallback? onSendPoll;
   final SendStickerCallback? onSendSticker;
   final LoadOlderMessagesCallback? onLoadOlderMessages;
   final SendReplyCallback? onSendReply;
@@ -173,7 +187,19 @@ class DiscordWorkspacePage extends StatelessWidget {
   final VoidCallback? onOpenUserSettings;
 
   @override
-  Widget build(BuildContext context) {
+  State<DiscordWorkspacePage> createState() => _DiscordWorkspacePageState();
+
+  Widget buildWorkspace(
+    BuildContext context, {
+    required DiscordNavigationHistory history,
+    required double effectiveSidebarWidth,
+    required VoidCallback goBack,
+    required VoidCallback goForward,
+    required ValueChanged<String> selectGuild,
+    required ValueChanged<String> selectChannel,
+    required ValueChanged<double> resizeSidebar,
+    required VoidCallback finishSidebarResize,
+  }) {
     final guild = _selectedGuild(state.guilds, selectedGuildId);
     final guildChannels = guild == null
         ? const <DiscordChannel>[]
@@ -248,10 +274,19 @@ class DiscordWorkspacePage extends StatelessWidget {
             participant.userId,
     };
     return Scaffold(
-      backgroundColor: DiscordColors.chat,
+      backgroundColor: context.discordPalette.chat,
       body: Column(
         children: [
           DiscordTitleBar(
+            onBack: history.canGoBack ? goBack : null,
+            onForward: history.canGoForward ? goForward : null,
+            onOpenInbox: () => _showInbox(
+              context,
+              channels: channels,
+              readStates: readStates,
+              onSelectChannel: selectChannel,
+            ),
+            onOpenHelp: () => _showWorkspaceHelp(context),
             onSearch: onSearchMessages == null
                 ? null
                 : (query) {
@@ -266,61 +301,71 @@ class DiscordWorkspacePage extends StatelessWidget {
                 GuildRail(
                   guilds: state.guilds,
                   selectedGuildId: guild?.id,
-                  onSelect: onSelectGuild,
+                  onSelect: selectGuild,
+                  density: displayDensity,
                 ),
-                ChannelSidebar(
-                  guild: guild,
-                  channels: channels,
-                  selectedChannelId: channel?.id,
-                  currentUser: state.currentUser,
-                  connectionLabel: connectionLabel,
-                  readStates: readStates,
-                  onSelect: onSelectChannel,
-                  onLogout: onLogout,
-                  onOpenUserSettings: onOpenUserSettings,
-                  voiceUiState: voiceUiState,
-                  voiceParticipantNames: voiceParticipantNames,
-                  onJoinVoiceChannel: onJoinVoiceChannel,
-                  onSetVoiceMuted: onSetVoiceMuted,
-                  onSetVoiceDeafened: onSetVoiceDeafened,
-                  onLeaveVoiceChannel: onLeaveVoiceChannel,
-                  onSetVoiceInputMode: onSetVoiceInputMode,
-                  onPushToTalkPressed: onPushToTalkPressed,
-                  onSetVoiceUserVolume: onSetVoiceUserVolume,
-                  onSetCameraEnabled: onSetCameraEnabled,
-                  onSetScreenShareEnabled: onSetScreenShareEnabled,
-                  onSetScreenSharePaused: onSetScreenSharePaused,
-                  onWatchVoiceStream: onWatchVoiceStream,
-                  onStopWatchingVoiceStream: onStopWatchingVoiceStream,
-                  localVideoStream: localVideoStream,
-                  localScreenStream: localScreenStream,
-                  canCreateChannel: canCreateChannel,
-                  manageableChannelIds: manageableChannelIds,
-                  guildErrorMessage: guildErrorMessage,
-                  onCreateGuildChannel: onCreateGuildChannel,
-                  onUpdateGuildChannel: onUpdateGuildChannel,
-                  onDeleteGuildChannel: onDeleteGuildChannel,
-                  canManageRoles: canManageRoles,
-                  onCreateGuildRole: onCreateGuildRole,
-                  onUpdateGuildRole: onUpdateGuildRole,
-                  onUpdateGuildRolePositions: onUpdateGuildRolePositions,
-                  onDeleteGuildRole: onDeleteGuildRole,
-                  canManageInvites: canManageInvites,
-                  onLoadGuildInvites: onLoadGuildInvites,
-                  onCreateGuildInvite: onCreateGuildInvite,
-                  onDeleteGuildInvite: onDeleteGuildInvite,
-                  canManageEvents: canManageEvents,
-                  onLoadScheduledEvents: onLoadScheduledEvents,
-                  onCreateScheduledEvent: onCreateScheduledEvent,
-                  onUpdateScheduledEvent: onUpdateScheduledEvent,
-                  onDeleteScheduledEvent: onDeleteScheduledEvent,
+                _ResizableChannelSidebar(
+                  width: effectiveSidebarWidth,
+                  onDrag: resizeSidebar,
+                  onDragEnd: finishSidebarResize,
+                  child: ChannelSidebar(
+                    guild: guild,
+                    channels: channels,
+                    selectedChannelId: channel?.id,
+                    currentUser: state.currentUser,
+                    connectionLabel: connectionLabel,
+                    readStates: readStates,
+                    onSelect: selectChannel,
+                    onLogout: onLogout,
+                    onOpenUserSettings: onOpenUserSettings,
+                    voiceUiState: voiceUiState,
+                    voiceParticipantNames: voiceParticipantNames,
+                    onJoinVoiceChannel: onJoinVoiceChannel,
+                    onSetVoiceMuted: onSetVoiceMuted,
+                    onSetVoiceDeafened: onSetVoiceDeafened,
+                    onLeaveVoiceChannel: onLeaveVoiceChannel,
+                    onSetVoiceInputMode: onSetVoiceInputMode,
+                    onPushToTalkPressed: onPushToTalkPressed,
+                    onSetVoiceUserVolume: onSetVoiceUserVolume,
+                    onSetCameraEnabled: onSetCameraEnabled,
+                    onSetScreenShareEnabled: onSetScreenShareEnabled,
+                    onSetScreenSharePaused: onSetScreenSharePaused,
+                    onWatchVoiceStream: onWatchVoiceStream,
+                    onStopWatchingVoiceStream: onStopWatchingVoiceStream,
+                    localVideoStream: localVideoStream,
+                    localScreenStream: localScreenStream,
+                    canCreateChannel: canCreateChannel,
+                    manageableChannelIds: manageableChannelIds,
+                    guildErrorMessage: guildErrorMessage,
+                    onCreateGuildChannel: onCreateGuildChannel,
+                    onUpdateGuildChannel: onUpdateGuildChannel,
+                    onDeleteGuildChannel: onDeleteGuildChannel,
+                    canManageRoles: canManageRoles,
+                    onCreateGuildRole: onCreateGuildRole,
+                    onUpdateGuildRole: onUpdateGuildRole,
+                    onUpdateGuildRolePositions: onUpdateGuildRolePositions,
+                    onDeleteGuildRole: onDeleteGuildRole,
+                    canManageInvites: canManageInvites,
+                    onLoadGuildInvites: onLoadGuildInvites,
+                    onCreateGuildInvite: onCreateGuildInvite,
+                    onDeleteGuildInvite: onDeleteGuildInvite,
+                    canManageEvents: canManageEvents,
+                    onLoadScheduledEvents: onLoadScheduledEvents,
+                    onCreateScheduledEvent: onCreateScheduledEvent,
+                    onUpdateScheduledEvent: onUpdateScheduledEvent,
+                    onDeleteScheduledEvent: onDeleteScheduledEvent,
+                    width: effectiveSidebarWidth,
+                    density: displayDensity,
+                    pinnedChannelIds: pinnedChannelIds,
+                    onToggleChannelPinned: onToggleChannelPinned,
+                  ),
                 ),
                 Expanded(
                   child: channel?.isForum == true || channel?.isMedia == true
                       ? ForumChannelPanel(
                           channel: channel!,
                           posts: forumPosts,
-                          onSelectPost: onSelectChannel,
+                          onSelectPost: selectChannel,
                           onRefresh: onRefreshThreads == null
                               ? null
                               : () => onRefreshThreads!(channel.id),
@@ -340,6 +385,7 @@ class DiscordWorkspacePage extends StatelessWidget {
                           canManageMessages: canManageMessages,
                           canPinMessages: canPinMessages,
                           onSendMessage: onSendMessage,
+                          onSendPoll: onSendPoll,
                           onSendSticker: onSendSticker,
                           onLoadOlderMessages: onLoadOlderMessages,
                           onSendReply: onSendReply,
@@ -373,6 +419,217 @@ class DiscordWorkspacePage extends StatelessWidget {
                   onRemoveRelationship: onRemoveRelationship,
                 ),
               ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+Future<void> _showInbox(
+  BuildContext context, {
+  required List<DiscordChannel> channels,
+  required Map<String, DiscordReadState> readStates,
+  required ValueChanged<String> onSelectChannel,
+}) async {
+  final unreadChannels = channels
+      .where((channel) => (readStates[channel.id]?.unreadCount ?? 0) > 0)
+      .toList(growable: false);
+  await showDialog<void>(
+    context: context,
+    builder: (dialogContext) => AlertDialog(
+      title: const Text('받은 편지함'),
+      content: SizedBox(
+        width: 420,
+        child: unreadChannels.isEmpty
+            ? const Text('읽지 않은 메시지가 없습니다.')
+            : ListView.builder(
+                shrinkWrap: true,
+                itemCount: unreadChannels.length,
+                itemBuilder: (context, index) {
+                  final channel = unreadChannels[index];
+                  final unreadCount = readStates[channel.id]!.unreadCount;
+                  return ListTile(
+                    leading: const Icon(Icons.tag),
+                    title: Text(channel.name),
+                    trailing: Badge(label: Text('$unreadCount')),
+                    onTap: () {
+                      Navigator.of(dialogContext).pop();
+                      onSelectChannel(channel.id);
+                    },
+                  );
+                },
+              ),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.of(dialogContext).pop(),
+          child: const Text('닫기'),
+        ),
+      ],
+    ),
+  );
+}
+
+Future<void> _showWorkspaceHelp(BuildContext context) async {
+  await showDialog<void>(
+    context: context,
+    builder: (dialogContext) => AlertDialog(
+      title: const Text('도움말'),
+      content: const SizedBox(
+        width: 420,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('빠른 탐색과 음성 기능을 바로 사용할 수 있습니다.'),
+            SizedBox(height: 16),
+            Text('• 상단 검색: 서버 메시지 검색'),
+            Text('• 뒤로/앞으로: 방문한 채널 이동'),
+            Text('• 채널 우클릭: 고정 및 관리'),
+            Text('• 음성 패널: 입력 모드와 화면 공유 제어'),
+          ],
+        ),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.of(dialogContext).pop(),
+          child: const Text('확인'),
+        ),
+      ],
+    ),
+  );
+}
+
+class _DiscordWorkspacePageState extends State<DiscordWorkspacePage> {
+  late DiscordNavigationHistory _history;
+  late double _sidebarWidth;
+  bool _restoringHistory = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _sidebarWidth = normalizeChannelSidebarWidth(widget.channelSidebarWidth);
+    _history = const DiscordNavigationHistory().visit(_currentLocation);
+  }
+
+  @override
+  void didUpdateWidget(covariant DiscordWorkspacePage oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.channelSidebarWidth != widget.channelSidebarWidth) {
+      _sidebarWidth = normalizeChannelSidebarWidth(widget.channelSidebarWidth);
+    }
+    if (_restoringHistory) {
+      if (_currentLocation == _history.current) {
+        _restoringHistory = false;
+      }
+      return;
+    }
+    _history = _history.visit(_currentLocation);
+  }
+
+  DiscordWorkspaceLocation get _currentLocation => DiscordWorkspaceLocation(
+    widget.selectedGuildId,
+    widget.selectedChannelId,
+  );
+
+  @override
+  Widget build(BuildContext context) {
+    return widget.buildWorkspace(
+      context,
+      history: _history,
+      effectiveSidebarWidth: _sidebarWidth,
+      goBack: _goBack,
+      goForward: _goForward,
+      selectGuild: _selectGuild,
+      selectChannel: _selectChannel,
+      resizeSidebar: _resizeSidebar,
+      finishSidebarResize: _finishSidebarResize,
+    );
+  }
+
+  void _goBack() => _navigate(_history.back());
+
+  void _goForward() => _navigate(_history.forward());
+
+  void _selectGuild(String guildId) {
+    widget.onSelectGuild(guildId);
+  }
+
+  void _selectChannel(String channelId) {
+    setState(() {
+      _history = _history.visit(
+        DiscordWorkspaceLocation(widget.selectedGuildId, channelId),
+      );
+    });
+    widget.onSelectChannel(channelId);
+  }
+
+  void _navigate(DiscordNavigationHistory next) {
+    final location = next.current;
+    if (identical(next, _history) || location == null) {
+      return;
+    }
+    setState(() {
+      _history = next;
+      _restoringHistory = true;
+    });
+    final guildId = location.guildId;
+    if (guildId != null && guildId != widget.selectedGuildId) {
+      widget.onSelectGuild(guildId);
+    }
+    final channelId = location.channelId;
+    if (channelId != null && channelId != widget.selectedChannelId) {
+      widget.onSelectChannel(channelId);
+    }
+  }
+
+  void _resizeSidebar(double delta) {
+    setState(() {
+      _sidebarWidth = normalizeChannelSidebarWidth(_sidebarWidth + delta);
+    });
+  }
+
+  void _finishSidebarResize() {
+    widget.onChannelSidebarWidthChanged?.call(_sidebarWidth);
+  }
+}
+
+class _ResizableChannelSidebar extends StatelessWidget {
+  const _ResizableChannelSidebar({
+    required this.width,
+    required this.child,
+    required this.onDrag,
+    required this.onDragEnd,
+  });
+
+  final double width;
+  final Widget child;
+  final ValueChanged<double> onDrag;
+  final VoidCallback onDragEnd;
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      width: width + 8,
+      child: Stack(
+        children: [
+          child,
+          Positioned(
+            top: 0,
+            right: 0,
+            bottom: 0,
+            width: 8,
+            child: Listener(
+              key: const ValueKey('channel-sidebar-resize-handle'),
+              behavior: HitTestBehavior.opaque,
+              onPointerMove: (event) => onDrag(event.delta.dx),
+              onPointerUp: (_) => onDragEnd(),
+              child: MouseRegion(
+                cursor: SystemMouseCursors.resizeColumn,
+                child: ColoredBox(color: context.discordPalette.divider),
+              ),
             ),
           ),
         ],

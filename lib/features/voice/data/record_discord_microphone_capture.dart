@@ -1,5 +1,6 @@
 import 'dart:typed_data';
 
+import 'package:discord_native/features/voice/domain/discord_audio_device.dart';
 import 'package:record/record.dart';
 
 abstract interface class DiscordMicrophoneCapture {
@@ -15,7 +16,12 @@ abstract interface class DiscordMicrophoneCapture {
 abstract interface class RecordAudioBackend {
   Future<bool> hasPermission();
 
-  Future<Stream<Uint8List>> startStream(RecordConfig config);
+  Future<List<DiscordAudioDevice>> listInputDevices();
+
+  Future<Stream<Uint8List>> startStream(
+    RecordConfig config, {
+    String? deviceId,
+  });
 
   Future<void> stop();
 
@@ -32,8 +38,21 @@ final class AudioRecorderBackend implements RecordAudioBackend {
   Future<bool> hasPermission() => _recorder.hasPermission();
 
   @override
-  Future<Stream<Uint8List>> startStream(RecordConfig config) {
-    return _recorder.startStream(config);
+  Future<List<DiscordAudioDevice>> listInputDevices() async {
+    final devices = await _recorder.listInputDevices();
+    return List.unmodifiable([
+      for (final device in devices)
+        DiscordAudioDevice(id: device.id, label: device.label),
+    ]);
+  }
+
+  @override
+  Future<Stream<Uint8List>> startStream(
+    RecordConfig config, {
+    String? deviceId,
+  }) async {
+    final device = await _findDevice(deviceId);
+    return _recorder.startStream(_withDevice(config, device));
   }
 
   @override
@@ -43,11 +62,43 @@ final class AudioRecorderBackend implements RecordAudioBackend {
 
   @override
   Future<void> dispose() => _recorder.dispose();
+
+  Future<InputDevice?> _findDevice(String? deviceId) async {
+    if (deviceId == null || deviceId.isEmpty) {
+      return null;
+    }
+    final devices = await _recorder.listInputDevices();
+    for (final device in devices) {
+      if (device.id == deviceId) {
+        return device;
+      }
+    }
+    return null;
+  }
+}
+
+RecordConfig _withDevice(RecordConfig config, InputDevice? device) {
+  return RecordConfig(
+    encoder: config.encoder,
+    bitRate: config.bitRate,
+    sampleRate: config.sampleRate,
+    numChannels: config.numChannels,
+    device: device,
+    autoGain: config.autoGain,
+    echoCancel: config.echoCancel,
+    noiseSuppress: config.noiseSuppress,
+    androidConfig: config.androidConfig,
+    iosConfig: config.iosConfig,
+    audioInterruption: config.audioInterruption,
+    streamBufferSize: config.streamBufferSize,
+  );
 }
 
 final class RecordDiscordMicrophoneCapture implements DiscordMicrophoneCapture {
-  RecordDiscordMicrophoneCapture({RecordAudioBackend? backend})
-    : _backend = backend ?? AudioRecorderBackend();
+  RecordDiscordMicrophoneCapture({
+    RecordAudioBackend? backend,
+    this.inputDeviceId = '',
+  }) : _backend = backend ?? AudioRecorderBackend();
 
   static const RecordConfig config = RecordConfig(
     encoder: AudioEncoder.pcm16bits,
@@ -58,6 +109,7 @@ final class RecordDiscordMicrophoneCapture implements DiscordMicrophoneCapture {
   );
 
   final RecordAudioBackend _backend;
+  final String inputDeviceId;
   bool _capturing = false;
   bool _disposed = false;
 
@@ -75,7 +127,10 @@ final class RecordDiscordMicrophoneCapture implements DiscordMicrophoneCapture {
       throw StateError('마이크 권한이 필요합니다. Windows 설정에서 허용해 주세요.');
     }
     try {
-      final stream = await _backend.startStream(config);
+      final stream = await _backend.startStream(
+        config,
+        deviceId: inputDeviceId.isEmpty ? null : inputDeviceId,
+      );
       _capturing = true;
       return stream;
     } on Object catch (error) {

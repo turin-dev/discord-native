@@ -1,5 +1,6 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:discord_native/features/messages/domain/discord_message_state.dart';
+import 'package:discord_native/features/workspace/presentation/discord_design_tokens.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_markdown_plus/flutter_markdown_plus.dart';
 import 'package:lottie/lottie.dart';
@@ -17,6 +18,8 @@ class DiscordMessageContent extends StatelessWidget {
       children: [
         if (message.displayContent.isNotEmpty)
           DiscordMarkdownBody(data: message.markdownContent),
+        if (message.poll case final poll?)
+          DiscordPollCard(key: ValueKey('poll-${message.id}'), poll: poll),
         for (var index = 0; index < message.embeds.length; index += 1)
           DiscordEmbedCard(
             key: ValueKey('embed-${message.id}-$index'),
@@ -32,6 +35,121 @@ class DiscordMessageContent extends StatelessWidget {
   }
 }
 
+class DiscordPollCard extends StatelessWidget {
+  const DiscordPollCard({required this.poll, super.key});
+
+  final DiscordPoll poll;
+
+  @override
+  Widget build(BuildContext context) {
+    final palette = context.discordPalette;
+    final maxVotes = poll.answers.fold<int>(
+      1,
+      (maximum, answer) =>
+          answer.voteCount > maximum ? answer.voteCount : maximum,
+    );
+    return Container(
+      constraints: const BoxConstraints(maxWidth: 460),
+      margin: const EdgeInsets.only(top: 8),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: palette.sidebar,
+        border: Border.all(color: palette.divider),
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Text(
+            poll.question,
+            style: TextStyle(
+              color: palette.text,
+              fontSize: 16,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+          const SizedBox(height: 12),
+          for (final answer in poll.answers) ...[
+            _PollAnswerRow(answer: answer, maxVotes: maxVotes),
+            const SizedBox(height: 8),
+          ],
+          Text(
+            _pollStatus(poll),
+            style: TextStyle(color: palette.textFaint, fontSize: 12),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _PollAnswerRow extends StatelessWidget {
+  const _PollAnswerRow({required this.answer, required this.maxVotes});
+
+  final DiscordPollAnswer answer;
+  final int maxVotes;
+
+  @override
+  Widget build(BuildContext context) {
+    final palette = context.discordPalette;
+    return LayoutBuilder(
+      builder: (context, constraints) => Container(
+        height: 42,
+        decoration: BoxDecoration(
+          border: Border.all(
+            color: answer.meVoted ? palette.brand : palette.divider,
+          ),
+          borderRadius: BorderRadius.circular(6),
+        ),
+        clipBehavior: Clip.antiAlias,
+        child: Stack(
+          children: [
+            SizedBox(
+              width: constraints.maxWidth * answer.voteCount / maxVotes,
+              child: ColoredBox(color: palette.brand.withValues(alpha: 0.18)),
+            ),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 12),
+              child: Row(
+                children: [
+                  Icon(
+                    answer.meVoted
+                        ? Icons.check_circle
+                        : Icons.radio_button_unchecked,
+                    size: 18,
+                    color: answer.meVoted ? palette.brand : palette.textMuted,
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      answer.text,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(color: palette.textNormal),
+                    ),
+                  ),
+                  Text(
+                    '${answer.voteCount}',
+                    style: TextStyle(
+                      color: palette.textMuted,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+String _pollStatus(DiscordPoll poll) {
+  final selection = poll.allowMultiselect ? '복수 선택' : '단일 선택';
+  final state = poll.finalized ? '종료됨' : '진행 중';
+  return '${poll.totalVotes}표 · $selection · $state';
+}
+
 class DiscordMarkdownBody extends StatelessWidget {
   const DiscordMarkdownBody({required this.data, super.key});
 
@@ -39,6 +157,7 @@ class DiscordMarkdownBody extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final palette = context.discordPalette;
     return MarkdownBody(
       data: data,
       selectable: true,
@@ -47,22 +166,22 @@ class DiscordMarkdownBody extends StatelessWidget {
       builders: {'discord-spoiler': DiscordSpoilerBuilder()},
       imageBuilder: _buildMarkdownImage,
       styleSheet: MarkdownStyleSheet.fromTheme(Theme.of(context)).copyWith(
-        p: const TextStyle(color: Color(0xFFDBDEE1), height: 1.35),
+        p: TextStyle(color: palette.textNormal, height: 1.35),
         pPadding: EdgeInsets.zero,
-        a: const TextStyle(color: Color(0xFF00A8FC)),
-        code: const TextStyle(
-          color: Color(0xFFE3E5E8),
-          backgroundColor: Color(0xFF1E1F22),
+        a: TextStyle(color: palette.link),
+        code: TextStyle(
+          color: palette.text,
+          backgroundColor: palette.window,
           fontFamily: 'monospace',
         ),
         codeblockDecoration: BoxDecoration(
-          color: const Color(0xFF1E1F22),
-          border: Border.all(color: const Color(0xFF111214)),
+          color: palette.window,
+          border: Border.all(color: palette.divider),
           borderRadius: BorderRadius.circular(4),
         ),
         codeblockPadding: const EdgeInsets.all(10),
-        blockquoteDecoration: const BoxDecoration(
-          border: Border(left: BorderSide(color: Color(0xFF4E5058), width: 3)),
+        blockquoteDecoration: BoxDecoration(
+          border: Border(left: BorderSide(color: palette.textFaint, width: 3)),
         ),
         blockquotePadding: const EdgeInsets.only(left: 10),
         blockSpacing: 6,
@@ -135,14 +254,18 @@ class _DiscordSpoilerState extends State<_DiscordSpoiler> {
       onTap: () => setState(() => _revealed = true),
       child: DecoratedBox(
         decoration: BoxDecoration(
-          color: _revealed ? const Color(0xFF4E5058) : const Color(0xFF1E1F22),
+          color: _revealed
+              ? context.discordPalette.selected
+              : context.discordPalette.window,
           borderRadius: BorderRadius.circular(3),
         ),
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
           child: Text(
             _revealed ? widget.text : '스포일러',
-            style: widget.style?.copyWith(color: const Color(0xFFDBDEE1)),
+            style: widget.style?.copyWith(
+              color: context.discordPalette.textNormal,
+            ),
           ),
         ),
       ),
@@ -158,14 +281,14 @@ class DiscordEmbedCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final accent = embed.color == null
-        ? const Color(0xFF5865F2)
+        ? context.discordPalette.brand
         : Color(0xFF000000 | embed.color!);
     return Container(
       constraints: const BoxConstraints(maxWidth: 520),
       margin: const EdgeInsets.only(top: 8),
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: const Color(0xFF2B2D31),
+        color: context.discordPalette.sidebar,
         border: Border(left: BorderSide(color: accent, width: 4)),
         borderRadius: BorderRadius.circular(4),
       ),
@@ -175,8 +298,8 @@ class DiscordEmbedCard extends StatelessWidget {
           if (embed.authorName case final author?)
             Text(
               author,
-              style: const TextStyle(
-                color: Color(0xFFDBDEE1),
+              style: TextStyle(
+                color: context.discordPalette.textNormal,
                 fontSize: 12,
                 fontWeight: FontWeight.w600,
               ),
@@ -185,15 +308,18 @@ class DiscordEmbedCard extends StatelessWidget {
             const SizedBox(height: 4),
             Text(
               title,
-              style: const TextStyle(
-                color: Color(0xFF00A8FC),
+              style: TextStyle(
+                color: context.discordPalette.link,
                 fontWeight: FontWeight.w700,
               ),
             ),
           ],
           if (embed.description case final description?) ...[
             const SizedBox(height: 6),
-            Text(description, style: const TextStyle(color: Color(0xFFDBDEE1))),
+            Text(
+              description,
+              style: TextStyle(color: context.discordPalette.textNormal),
+            ),
           ],
           if (embed.fields.isNotEmpty) ...[
             const SizedBox(height: 8),
@@ -209,14 +335,16 @@ class DiscordEmbedCard extends StatelessWidget {
                       children: [
                         Text(
                           field.name,
-                          style: const TextStyle(
-                            color: Colors.white,
+                          style: TextStyle(
+                            color: context.discordPalette.text,
                             fontWeight: FontWeight.w700,
                           ),
                         ),
                         Text(
                           field.value,
-                          style: const TextStyle(color: Color(0xFFDBDEE1)),
+                          style: TextStyle(
+                            color: context.discordPalette.textNormal,
+                          ),
                         ),
                       ],
                     ),
@@ -236,7 +364,10 @@ class DiscordEmbedCard extends StatelessWidget {
             const SizedBox(height: 8),
             Text(
               footer,
-              style: const TextStyle(color: Color(0xFF949BA4), fontSize: 11),
+              style: TextStyle(
+                color: context.discordPalette.textFaint,
+                fontSize: 11,
+              ),
             ),
           ],
         ],
@@ -259,7 +390,7 @@ class DiscordStickerCard extends StatelessWidget {
       margin: const EdgeInsets.only(top: 8),
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: const Color(0xFF2B2D31),
+        color: context.discordPalette.sidebar,
         borderRadius: BorderRadius.circular(8),
       ),
       child: Column(
@@ -274,11 +405,14 @@ class DiscordStickerCard extends StatelessWidget {
               height: 156,
               fit: BoxFit.contain,
               renderCache: RenderCache.raster,
-              errorBuilder: (context, _, _) => const SizedBox(
+              errorBuilder: (context, _, _) => SizedBox(
                 width: 156,
                 height: 64,
                 child: Center(
-                  child: Icon(Icons.broken_image, color: Color(0xFF949BA4)),
+                  child: Icon(
+                    Icons.broken_image,
+                    color: context.discordPalette.textFaint,
+                  ),
                 ),
               ),
             )
@@ -292,13 +426,13 @@ class DiscordStickerCard extends StatelessWidget {
           Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              const Icon(Icons.emoji_emotions, color: Color(0xFFF0B232)),
+              Icon(Icons.emoji_emotions, color: context.discordPalette.warning),
               const SizedBox(width: 8),
               Flexible(
                 child: Text(
                   sticker.name,
                   overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(color: Color(0xFFDBDEE1)),
+                  style: TextStyle(color: context.discordPalette.textNormal),
                 ),
               ),
             ],
@@ -330,13 +464,18 @@ class _DiscordRemoteMedia extends StatelessWidget {
       placeholder: (context, _) => SizedBox(
         width: width,
         height: height,
-        child: const Center(child: Icon(Icons.image, color: Color(0xFF949BA4))),
+        child: Center(
+          child: Icon(Icons.image, color: context.discordPalette.textFaint),
+        ),
       ),
       errorWidget: (context, _, _) => SizedBox(
         width: width,
         height: 64,
-        child: const Center(
-          child: Icon(Icons.broken_image, color: Color(0xFF949BA4)),
+        child: Center(
+          child: Icon(
+            Icons.broken_image,
+            color: context.discordPalette.textFaint,
+          ),
         ),
       ),
     );

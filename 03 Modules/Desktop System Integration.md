@@ -12,7 +12,7 @@ aliases: [Desktop System Integration]
 
 Windows 전용 동작은 `DesktopSystemBridge` 경계 뒤에 둔다. `WindowsDesktopSystemBridge`는 창 닫기 시 트레이 최소화, 트레이 메뉴, `Ctrl+Shift+D` 전역 단축키, 로컬 알림과 자동 업데이트를 담당한다. 비 Windows 환경과 단위 테스트는 `NoopDesktopSystemBridge`를 사용한다.
 
-사용자 설정은 불변 `DesktopSettings`로 관리하고 secure storage에 JSON으로 저장한다. 테마는 system/light/dark와 강조 색상을 지원하며, 알림·트레이·단축키·자동 업데이트를 각각 끌 수 있다. 업데이트는 `DISCORD_NATIVE_UPDATE_FEED`에 유효한 HTTPS 피드가 주입되고 WinSparkle DSA public key가 runner resource에 포함된 Release build에서만 배포한다. private key는 CI secret과 서명 단계에만 존재한다.
+사용자 설정은 불변 `DesktopSettings`로 관리하고 secure storage에 JSON으로 저장한다. 테마는 system/light/ash/dark/onyx와 강조 색상을 지원하고, compact/default/spacious 표시 밀도, 220–360px channel sidebar 폭, pinned channel ID와 입력·출력 오디오 장치 ID를 함께 보존한다. 알림·트레이·단축키·자동 업데이트는 각각 끌 수 있다. 업데이트는 `DISCORD_NATIVE_UPDATE_FEED`에 유효한 HTTPS 피드가 주입되고 WinSparkle DSA public key가 runner resource에 포함된 Release build에서만 배포한다. private key는 CI secret과 서명 단계에만 존재한다.
 
 다중 계정 인덱스에는 사용자 ID와 표시명만 저장하고 토큰은 계정별 secure-storage key로 분리한다. READY 완료 시 현재 토큰과 계정 메타데이터를 연결하고, 계정 전환 전 기존 Gateway와 음성 세션을 정리한다. 계정 삭제는 해당 계정 토큰과 메시지 캐시만 제거한다.
 

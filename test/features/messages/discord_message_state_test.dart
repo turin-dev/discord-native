@@ -212,5 +212,47 @@ void main() {
       expect(loaded.isLoadingOlder, isFalse);
       expect(loaded.hasMore, isFalse);
     });
+
+    test('투표 질문, 답변, 집계와 내 선택을 파싱한다', () {
+      final message = DiscordMessage.fromJson({
+        'id': 'message-poll',
+        'channel_id': 'channel-1',
+        'content': '',
+        'timestamp': '2026-07-16T10:03:00.000Z',
+        'author': {'id': 'user-1', 'username': 'alice'},
+        'poll': {
+          'question': {'text': '점심 메뉴는?'},
+          'answers': [
+            {
+              'answer_id': 1,
+              'poll_media': {'text': '김치찌개'},
+            },
+            {
+              'answer_id': 2,
+              'poll_media': {'text': '돈가스'},
+            },
+          ],
+          'expiry': '2026-07-17T10:03:00.000Z',
+          'allow_multiselect': false,
+          'layout_type': 1,
+          'results': {
+            'is_finalized': false,
+            'answer_counts': [
+              {'id': 1, 'count': 3, 'me_voted': true},
+              {'id': 2, 'count': 1, 'me_voted': false},
+            ],
+          },
+        },
+      });
+
+      expect(message.poll?.question, '점심 메뉴는?');
+      expect(message.poll?.answers.map((answer) => answer.text), [
+        '김치찌개',
+        '돈가스',
+      ]);
+      expect(message.poll?.answers.first.voteCount, 3);
+      expect(message.poll?.answers.first.meVoted, isTrue);
+      expect(message.poll?.totalVotes, 4);
+    });
   });
 }

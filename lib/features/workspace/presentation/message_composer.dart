@@ -18,6 +18,7 @@ class MessageComposer extends StatelessWidget {
     required this.onSend,
     required this.channelName,
     this.onPickExpression,
+    this.onCreatePoll,
     super.key,
   });
 
@@ -33,6 +34,7 @@ class MessageComposer extends StatelessWidget {
   final VoidCallback onSend;
   final String channelName;
   final VoidCallback? onPickExpression;
+  final VoidCallback? onCreatePoll;
 
   @override
   Widget build(BuildContext context) {
@@ -56,16 +58,18 @@ class MessageComposer extends StatelessWidget {
           if (replyTarget case final target?)
             Container(
               padding: const EdgeInsets.fromLTRB(12, 6, 4, 6),
-              decoration: const BoxDecoration(
-                color: DiscordColors.sidebar,
-                borderRadius: BorderRadius.vertical(top: Radius.circular(8)),
+              decoration: BoxDecoration(
+                color: context.discordPalette.sidebar,
+                borderRadius: const BorderRadius.vertical(
+                  top: Radius.circular(8),
+                ),
               ),
               child: Row(
                 children: [
                   Expanded(
                     child: Text(
                       '${target.authorName}에게 답장',
-                      style: const TextStyle(color: DiscordColors.textMuted),
+                      style: TextStyle(color: context.discordPalette.textMuted),
                     ),
                   ),
                   IconButton(
@@ -81,8 +85,8 @@ class MessageComposer extends StatelessWidget {
               padding: const EdgeInsets.only(left: 12, bottom: 4),
               child: Text(
                 _typingLabel(typingUsers),
-                style: const TextStyle(
-                  color: DiscordColors.textMuted,
+                style: TextStyle(
+                  color: context.discordPalette.textMuted,
                   fontSize: 12,
                 ),
               ),
@@ -103,9 +107,9 @@ class MessageComposer extends StatelessWidget {
             maxLines: 5,
             decoration: InputDecoration(
               hintText: enabled ? '#$channelName에 메시지 보내기' : '채널 연결 대기 중',
-              hintStyle: const TextStyle(color: DiscordColors.textFaint),
+              hintStyle: TextStyle(color: context.discordPalette.textFaint),
               filled: true,
-              fillColor: DiscordColors.input,
+              fillColor: context.discordPalette.input,
               border: OutlineInputBorder(
                 borderSide: BorderSide.none,
                 borderRadius: replyTarget == null
@@ -129,11 +133,41 @@ class MessageComposer extends StatelessWidget {
                 ],
               ),
               prefixIconConstraints: const BoxConstraints(minWidth: 48),
-              prefixIcon: IconButton(
-                tooltip: '파일 첨부',
-                onPressed: enabled ? onPickAttachments : null,
-                icon: const Icon(Icons.add_circle, size: 22),
-              ),
+              prefixIcon: onCreatePoll == null
+                  ? IconButton(
+                      tooltip: '파일 첨부',
+                      onPressed: enabled ? onPickAttachments : null,
+                      icon: const Icon(Icons.add_circle, size: 22),
+                    )
+                  : PopupMenuButton<_ComposerAddAction>(
+                      tooltip: '파일 첨부',
+                      enabled: enabled,
+                      onSelected: (action) {
+                        switch (action) {
+                          case _ComposerAddAction.attachment:
+                            onPickAttachments();
+                          case _ComposerAddAction.poll:
+                            onCreatePoll?.call();
+                        }
+                      },
+                      itemBuilder: (context) => const [
+                        PopupMenuItem(
+                          value: _ComposerAddAction.attachment,
+                          child: ListTile(
+                            leading: Icon(Icons.upload_file),
+                            title: Text('파일 업로드'),
+                          ),
+                        ),
+                        PopupMenuItem(
+                          value: _ComposerAddAction.poll,
+                          child: ListTile(
+                            leading: Icon(Icons.poll_outlined),
+                            title: Text('투표 만들기'),
+                          ),
+                        ),
+                      ],
+                      icon: const Icon(Icons.add_circle, size: 22),
+                    ),
             ),
           ),
         ],
@@ -141,6 +175,8 @@ class MessageComposer extends StatelessWidget {
     );
   }
 }
+
+enum _ComposerAddAction { attachment, poll }
 
 String _typingLabel(List<DiscordTypingUser> users) {
   if (users.length == 1) {

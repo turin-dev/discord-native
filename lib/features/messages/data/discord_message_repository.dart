@@ -24,6 +24,8 @@ abstract interface class MessageRepository {
 
   Future<DiscordMessage> sendMessage(String channelId, String content);
 
+  Future<DiscordMessage> sendPoll(String channelId, DiscordPollDraft draft);
+
   Future<DiscordMessage> sendStickers(
     String channelId,
     List<String> stickerIds, {
@@ -186,6 +188,47 @@ final class DiscordMessageRepository implements MessageRepository {
   @override
   Future<DiscordMessage> sendMessage(String channelId, String content) async {
     return _sendMessage(channelId, content);
+  }
+
+  @override
+  Future<DiscordMessage> sendPoll(
+    String channelId,
+    DiscordPollDraft draft,
+  ) async {
+    final question = draft.question.trim();
+    final answers = List<String>.unmodifiable(
+      draft.answers.map((answer) => answer.trim()),
+    );
+    if (question.isEmpty || question.length > 300) {
+      throw const InvalidMessageException('투표 질문은 1~300자여야 합니다.');
+    }
+    if (answers.length < 2 || answers.length > 10) {
+      throw const InvalidMessageException('투표 답변은 2~10개여야 합니다.');
+    }
+    if (answers.any((answer) => answer.isEmpty || answer.length > 55)) {
+      throw const InvalidMessageException('각 투표 답변은 1~55자여야 합니다.');
+    }
+    if (draft.durationHours < 1 || draft.durationHours > 768) {
+      throw const InvalidMessageException('투표 기간은 1~768시간이어야 합니다.');
+    }
+    final body = await _api.post(
+      '/channels/$channelId/messages',
+      data: {
+        'poll': {
+          'question': {'text': question},
+          'answers': [
+            for (final answer in answers)
+              {
+                'poll_media': {'text': answer},
+              },
+          ],
+          'duration': draft.durationHours,
+          'allow_multiselect': draft.allowMultiselect,
+          'layout_type': 1,
+        },
+      },
+    );
+    return DiscordMessage.fromJson(_readMessage(body));
   }
 
   @override

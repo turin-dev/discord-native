@@ -27,8 +27,8 @@ class MessageActionsMenu extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MenuAnchor(
-      style: const MenuStyle(
-        backgroundColor: WidgetStatePropertyAll(DiscordColors.sidebar),
+      style: MenuStyle(
+        backgroundColor: WidgetStatePropertyAll(context.discordPalette.sidebar),
       ),
       menuChildren: [
         if (canEdit)
@@ -52,10 +52,10 @@ class MessageActionsMenu extends StatelessWidget {
         padding: EdgeInsets.zero,
         tooltip: '메시지 작업',
         onPressed: controller.isOpen ? controller.close : controller.open,
-        icon: const Icon(
+        icon: Icon(
           Icons.more_horiz,
           size: 18,
-          color: DiscordColors.textMuted,
+          color: context.discordPalette.textMuted,
         ),
       ),
     );

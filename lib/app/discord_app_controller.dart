@@ -303,6 +303,25 @@ final class DiscordAppController {
     }
   }
 
+  Future<void> sendPoll(DiscordPollDraft draft) async {
+    final channelId = _state.selectedChannelId;
+    final repository = _messageRepository;
+    if (channelId == null || repository == null) {
+      return;
+    }
+    try {
+      final message = await repository.sendPoll(channelId, draft);
+      if (_state.selectedChannelId == channelId) {
+        _update(
+          _state.copyWith(messageState: _state.messageState.add(message)),
+        );
+        _markChannelRead(channelId, message.id);
+      }
+    } on Object catch (error) {
+      _showMessageError(error);
+    }
+  }
+
   Future<void> sendSticker(String stickerId, {String content = ''}) async {
     final channelId = _state.selectedChannelId;
     final repository = _messageRepository;

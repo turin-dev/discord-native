@@ -1,6 +1,7 @@
 import 'dart:typed_data';
 
 import 'package:discord_native/features/voice/data/soloud_discord_voice_playback.dart';
+import 'package:discord_native/features/voice/domain/discord_audio_device.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
@@ -51,6 +52,19 @@ void main() {
       expect(backend.disposedStreamIds, [1, 2]);
       expect(backend.disposed, isTrue);
     });
+
+    test('초기화할 때 저장한 출력 장치를 선택한다', () async {
+      final backend = _FakeSoloudPlaybackBackend();
+      final playback = SoloudDiscordVoicePlayback(
+        backend: backend,
+        outputDeviceId: '8',
+      );
+
+      await playback.initialize();
+
+      expect(backend.selectedDeviceId, '8');
+      await playback.dispose();
+    });
   });
 }
 
@@ -74,10 +88,22 @@ final class _FakeSoloudPlaybackBackend implements SoloudPlaybackBackend {
   List<Uint8List> added = const [];
   List<double> volumes = const [];
   List<int> disposedStreamIds = const [];
+  String? selectedDeviceId;
 
   @override
   Future<void> initialize() async {
     initialized = true;
+  }
+
+  @override
+  List<DiscordAudioDevice> listPlaybackDevices() => const [
+    DiscordAudioDevice(id: '7', label: '기본 스피커', isDefault: true),
+    DiscordAudioDevice(id: '8', label: 'USB 헤드셋'),
+  ];
+
+  @override
+  void selectPlaybackDevice(String deviceId) {
+    selectedDeviceId = deviceId;
   }
 
   @override

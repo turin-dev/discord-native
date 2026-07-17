@@ -1,5 +1,6 @@
 import 'dart:typed_data';
 
+import 'package:discord_native/features/voice/domain/discord_audio_device.dart';
 import 'package:flutter_soloud/flutter_soloud.dart';
 
 abstract interface class DiscordVoicePlayback {
@@ -18,6 +19,10 @@ abstract interface class SoloudPlaybackStream {}
 
 abstract interface class SoloudPlaybackBackend {
   Future<void> initialize();
+
+  List<DiscordAudioDevice> listPlaybackDevices();
+
+  void selectPlaybackDevice(String deviceId);
 
   Future<SoloudPlaybackStream> createStream({
     required Uint8List initialPcm,
@@ -60,6 +65,29 @@ final class NativeSoloudPlaybackBackend implements SoloudPlaybackBackend {
       channels: Channels.stereo,
       lowLatency: true,
     );
+  }
+
+  @override
+  List<DiscordAudioDevice> listPlaybackDevices() {
+    return List.unmodifiable([
+      for (final device in _player.listPlaybackDevices())
+        DiscordAudioDevice(
+          id: device.id.toString(),
+          label: device.name,
+          isDefault: device.isDefault,
+        ),
+    ]);
+  }
+
+  @override
+  void selectPlaybackDevice(String deviceId) {
+    final devices = _player.listPlaybackDevices();
+    for (final device in devices) {
+      if (device.id.toString() == deviceId) {
+        _player.changeDevice(newDevice: device);
+        return;
+      }
+    }
   }
 
   @override
@@ -124,10 +152,13 @@ final class NativeSoloudPlaybackBackend implements SoloudPlaybackBackend {
 }
 
 final class SoloudDiscordVoicePlayback implements DiscordVoicePlayback {
-  SoloudDiscordVoicePlayback({SoloudPlaybackBackend? backend})
-    : _backend = backend ?? NativeSoloudPlaybackBackend();
+  SoloudDiscordVoicePlayback({
+    SoloudPlaybackBackend? backend,
+    this.outputDeviceId = '',
+  }) : _backend = backend ?? NativeSoloudPlaybackBackend();
 
   final SoloudPlaybackBackend _backend;
+  final String outputDeviceId;
   Map<String, SoloudPlaybackStream> _streams = const {};
   Map<String, double> _volumes = const {};
   bool _initialized = false;
@@ -141,6 +172,9 @@ final class SoloudDiscordVoicePlayback implements DiscordVoicePlayback {
     }
     try {
       await _backend.initialize();
+      if (outputDeviceId.isNotEmpty) {
+        _backend.selectPlaybackDevice(outputDeviceId);
+      }
       _initialized = true;
     } on Object catch (error) {
       throw StateError('음성 출력 장치를 초기화하지 못했습니다: $error');

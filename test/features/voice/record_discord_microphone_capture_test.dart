@@ -1,6 +1,7 @@
 import 'dart:typed_data';
 
 import 'package:discord_native/features/voice/data/record_discord_microphone_capture.dart';
+import 'package:discord_native/features/voice/domain/discord_audio_device.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:record/record.dart';
 
@@ -23,6 +24,19 @@ void main() {
       await capture.stop();
       expect(backend.stopCalls, 1);
       expect(capture.isCapturing, isFalse);
+      await capture.dispose();
+    });
+
+    test('선택한 입력 장치 ID로 capture를 시작한다', () async {
+      final backend = _FakeRecordAudioBackend();
+      final capture = RecordDiscordMicrophoneCapture(
+        backend: backend,
+        inputDeviceId: 'mic-2',
+      );
+
+      await capture.start();
+
+      expect(backend.selectedDeviceId, 'mic-2');
       await capture.dispose();
     });
 
@@ -56,15 +70,26 @@ final class _FakeRecordAudioBackend implements RecordAudioBackend {
   RecordConfig? config;
   int stopCalls = 0;
   int disposeCalls = 0;
+  String? selectedDeviceId;
 
   @override
   Future<bool> hasPermission() async => permissionGranted;
 
   @override
-  Future<Stream<Uint8List>> startStream(RecordConfig config) async {
+  Future<Stream<Uint8List>> startStream(
+    RecordConfig config, {
+    String? deviceId,
+  }) async {
     this.config = config;
+    selectedDeviceId = deviceId;
     return stream;
   }
+
+  @override
+  Future<List<DiscordAudioDevice>> listInputDevices() async => const [
+    DiscordAudioDevice(id: 'mic-1', label: '기본 마이크'),
+    DiscordAudioDevice(id: 'mic-2', label: 'USB 마이크'),
+  ];
 
   @override
   Future<void> stop() async {

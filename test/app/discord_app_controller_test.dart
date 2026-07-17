@@ -1514,6 +1514,35 @@ final class _FakeMessageRepository implements MessageRepository {
   }
 
   @override
+  Future<DiscordMessage> sendPoll(
+    String channelId,
+    DiscordPollDraft draft,
+  ) async {
+    return DiscordMessage(
+      id: 'message-poll',
+      channelId: channelId,
+      content: '',
+      authorId: 'user-1',
+      authorName: 'alice',
+      timestamp: DateTime.utc(2026, 7, 16, 10, 2),
+      poll: DiscordPoll(
+        question: draft.question,
+        answers: [
+          for (var index = 0; index < draft.answers.length; index += 1)
+            DiscordPollAnswer(
+              id: index + 1,
+              text: draft.answers[index],
+              voteCount: 0,
+              meVoted: false,
+            ),
+        ],
+        allowMultiselect: draft.allowMultiselect,
+        finalized: false,
+      ),
+    );
+  }
+
+  @override
   Future<DiscordMessage> sendStickers(
     String channelId,
     List<String> stickerIds, {

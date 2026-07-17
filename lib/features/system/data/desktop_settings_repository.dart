@@ -83,6 +83,18 @@ DesktopSettings _fromJson(Map<String, Object?> json) {
       json['autoUpdateEnabled'],
       defaults.autoUpdateEnabled,
     ),
+    displayDensity: DesktopDisplayDensity.values.firstWhere(
+      (value) => value.name == json['displayDensity'],
+      orElse: () => DesktopDisplayDensity.defaultMode,
+    ),
+    channelSidebarWidth: normalizeChannelSidebarWidth(
+      _number(json['channelSidebarWidth']) ?? defaults.channelSidebarWidth,
+    ),
+    pinnedChannelIds: List.unmodifiable(
+      _readStrings(json['pinnedChannelIds']).toSet(),
+    ),
+    inputDeviceId: _string(json['inputDeviceId']),
+    outputDeviceId: _string(json['outputDeviceId']),
   );
 }
 
@@ -94,9 +106,35 @@ Map<String, Object> _toJson(DesktopSettings settings) {
     'notificationsEnabled': settings.notificationsEnabled,
     'globalShortcutEnabled': settings.globalShortcutEnabled,
     'autoUpdateEnabled': settings.autoUpdateEnabled,
+    'displayDensity': settings.displayDensity.name,
+    'channelSidebarWidth': normalizeChannelSidebarWidth(
+      settings.channelSidebarWidth,
+    ),
+    'pinnedChannelIds': settings.pinnedChannelIds,
+    'inputDeviceId': settings.inputDeviceId,
+    'outputDeviceId': settings.outputDeviceId,
   };
 }
 
 bool _boolean(Object? value, bool fallback) {
   return value is bool ? value : fallback;
+}
+
+double? _number(Object? value) {
+  return value is num ? value.toDouble() : null;
+}
+
+Iterable<String> _readStrings(Object? value) sync* {
+  if (value is! List) {
+    return;
+  }
+  for (final item in value) {
+    if (item is String && item.isNotEmpty) {
+      yield item;
+    }
+  }
+}
+
+String _string(Object? value) {
+  return value is String ? value : '';
 }

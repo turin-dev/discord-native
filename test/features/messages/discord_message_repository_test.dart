@@ -1,5 +1,6 @@
 import 'package:discord_native/core/network/discord_rest_client.dart';
 import 'package:discord_native/features/messages/data/discord_message_repository.dart';
+import 'package:discord_native/features/messages/domain/discord_message_state.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
@@ -72,6 +73,91 @@ void main() {
 
       expect(message.content, '안녕하세요');
       expect(api.lastData, {'content': '안녕하세요'});
+    });
+
+    test('공식 poll payload로 최대 10개 답변의 투표를 만든다', () async {
+      final api = _FakeDiscordRestApi(
+        postResponse: {
+          'id': 'message-poll',
+          'channel_id': 'channel-1',
+          'content': '',
+          'timestamp': '2026-07-16T10:00:00.000Z',
+          'author': {'id': 'user-1', 'username': 'alice'},
+          'poll': {
+            'question': {'text': '점심 메뉴는?'},
+            'answers': [
+              {
+                'answer_id': 1,
+                'poll_media': {'text': '김치찌개'},
+              },
+              {
+                'answer_id': 2,
+                'poll_media': {'text': '돈가스'},
+              },
+            ],
+            'allow_multiselect': true,
+            'layout_type': 1,
+          },
+        },
+      );
+      final repository = DiscordMessageRepository(api);
+      const draft = DiscordPollDraft(
+        question: '점심 메뉴는?',
+        answers: ['김치찌개', '돈가스'],
+        durationHours: 24,
+        allowMultiselect: true,
+      );
+
+      final message = await repository.sendPoll('channel-1', draft);
+
+      expect(message.poll?.question, '점심 메뉴는?');
+      expect(api.lastData, {
+        'poll': {
+          'question': {'text': '점심 메뉴는?'},
+          'answers': [
+            {
+              'poll_media': {'text': '김치찌개'},
+            },
+            {
+              'poll_media': {'text': '돈가스'},
+            },
+          ],
+          'duration': 24,
+          'allow_multiselect': true,
+          'layout_type': 1,
+        },
+      });
+    });
+
+    test('질문과 답변 제한을 벗어난 투표는 API 전에 거부한다', () async {
+      final api = _FakeDiscordRestApi();
+      final repository = DiscordMessageRepository(api);
+
+      expect(
+        () => repository.sendPoll(
+          'channel-1',
+          const DiscordPollDraft(
+            question: '',
+            answers: ['하나', '둘'],
+            durationHours: 24,
+            allowMultiselect: false,
+          ),
+        ),
+        throwsA(isA<InvalidMessageException>()),
+      );
+      expect(
+        () => repository.sendPoll(
+          'channel-1',
+          const DiscordPollDraft(
+            question: '질문',
+            answers: ['하나'],
+            durationHours: 24,
+            allowMultiselect: false,
+          ),
+        ),
+        throwsA(isA<InvalidMessageException>()),
+      );
+      expect(api.postCount, 0);
     });
 
     test('최대 3개의 sticker ID와 선택적 내용을 메시지로 전송한다', () async {

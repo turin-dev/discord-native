@@ -7,25 +7,28 @@ class DiscordGuildIcon extends StatelessWidget {
   const DiscordGuildIcon({
     required this.guild,
     this.selected = false,
+    this.size = DiscordLayout.guildIconSize,
     super.key,
   });
 
   final DiscordGuild guild;
   final bool selected;
+  final double size;
 
   @override
   Widget build(BuildContext context) {
+    final palette = context.discordPalette;
     final radius = BorderRadius.all(
       selected ? DiscordRadius.guild : DiscordRadius.round,
     );
     final imageUrl = _guildIconUrl(guild);
     return AnimatedContainer(
       duration: const Duration(milliseconds: 160),
-      width: DiscordLayout.guildIconSize,
-      height: DiscordLayout.guildIconSize,
+      width: size,
+      height: size,
       clipBehavior: Clip.antiAlias,
       decoration: BoxDecoration(
-        color: selected ? DiscordColors.brand : DiscordColors.chat,
+        color: selected ? palette.brand : palette.chat,
         borderRadius: radius,
       ),
       child: imageUrl == null
@@ -54,6 +57,7 @@ class DiscordUserAvatar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final palette = context.discordPalette;
     final imageUrl = _avatarUrl(user);
     return Stack(
       clipBehavior: Clip.none,
@@ -79,7 +83,7 @@ class DiscordUserAvatar extends StatelessWidget {
               decoration: BoxDecoration(
                 color: statusColor,
                 shape: BoxShape.circle,
-                border: Border.all(color: DiscordColors.sidebar, width: 2),
+                border: Border.all(color: palette.sidebar, width: 2),
               ),
               child: SizedBox.square(dimension: radius * 0.7),
             ),
