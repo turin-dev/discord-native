@@ -12,6 +12,11 @@ aliases: [Change Log]
 
 ## 2026-07-17
 
+- 전체 구현 소스를 독립된 공개 저장소 이력으로 복제하고 로컬 IDE·build·coverage artifact 제외
+- 빌드에 사용하지 않는 mbedTLS private-key test fixture와 upstream 개인 경로가 담긴 생성 파일 제거
+- gitleaks 기본 규칙과 검토된 vendored test vector allowlist를 추가하고 전체 Git 이력 0건 검증
+- MIT 프로젝트 라이선스, third-party 고지, 기여·보안 정책, issue·pull request template 추가
+- 공개용 README, Windows setup script, Dependabot과 signed release secret 안내 추가
 - 존재하지 않는 category를 참조하는 channel도 목록에서 보존하도록 정렬 보정
 - guild owner·role과 channel permission overwrite 모델 및 role Gateway event 구현
 - owner·ADMINISTRATOR·role/member overwrite·thread 상속·timeout을 포함한 `BigInt` permission 계산 구현

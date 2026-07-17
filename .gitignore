@@ -35,6 +35,9 @@ devtools_options.yaml
 /coverage/
 /benchmark-results/
 /dist/
+.env
+.env.*
+!.env.example
 /windows/runner/dsa_pub.pem
 dsa_priv.pem
 /third_party/mbedtls/framework/data_files/
