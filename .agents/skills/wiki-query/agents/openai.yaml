@@ -1,0 +1,4 @@
+interface:
+  display_name: "Wiki Query"
+  short_description: "코드 대신 위키 허브부터 따라가게 하는 탐색 스킬"
+  default_prompt: "Use $wiki-query to find and read the most relevant wiki notes before exploring the codebase."

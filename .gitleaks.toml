@@ -1,0 +1,10 @@
+[extend]
+useDefault = true
+
+[[allowlists]]
+description = "Verified vendored cryptography source and test vectors"
+paths = [
+  '''third_party/mbedtls/library/pk_internal\.h$''',
+  '''third_party/libdatachannel/deps/libjuice/test/stun\.c$''',
+  '''third_party/libdatachannel/deps/libsrtp/test/rtpw_test\.sh$''',
+]
