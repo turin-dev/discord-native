@@ -20,6 +20,7 @@ import 'package:discord_native/features/voice/data/discord_voice_coordinator.dar
 import 'package:discord_native/features/voice/domain/discord_voice_media_state.dart';
 import 'package:discord_native/features/workspace/data/discord_direct_message_repository.dart';
 import 'package:discord_native/features/workspace/data/discord_channel_management_repository.dart';
+import 'package:discord_native/features/workspace/data/discord_client_sync_repository.dart';
 import 'package:discord_native/features/workspace/data/discord_relationship_repository.dart';
 import 'package:discord_native/features/workspace/data/discord_role_repository.dart';
 import 'package:discord_native/features/workspace/data/discord_invite_repository.dart';
@@ -38,6 +39,7 @@ part 'discord_app_controller_relationships.dart';
 part 'discord_app_controller_guilds.dart';
 part 'discord_app_controller_voice.dart';
 part 'discord_app_controller_accounts.dart';
+part 'discord_app_controller_client_api.dart';
 
 typedef MessageRepositoryFactory = MessageRepository Function(String token);
 typedef ThreadRepositoryFactory = ThreadRepository Function(String token);
@@ -51,6 +53,8 @@ typedef RoleRepositoryFactory = RoleRepository Function(String token);
 typedef InviteRepositoryFactory = InviteRepository Function(String token);
 typedef ScheduledEventRepositoryFactory =
     ScheduledEventRepository Function(String token);
+typedef ClientSyncRepositoryFactory =
+    ClientSyncRepository Function(String token);
 typedef NowCallback = DateTime Function();
 typedef MessageNotificationCallback =
     Future<void> Function(DiscordMessageNotification notification);
@@ -72,6 +76,7 @@ final class DiscordAppController {
     RoleRepositoryFactory? roleRepositoryFactory,
     InviteRepositoryFactory? inviteRepositoryFactory,
     ScheduledEventRepositoryFactory? scheduledEventRepositoryFactory,
+    ClientSyncRepositoryFactory? clientSyncRepositoryFactory,
     ReadStateRepository? readStateRepository,
     TypingExpiryScheduler typingExpiryScheduler =
         const TimerTypingExpiryScheduler(),
@@ -91,6 +96,7 @@ final class DiscordAppController {
        _roleRepositoryFactory = roleRepositoryFactory,
        _inviteRepositoryFactory = inviteRepositoryFactory,
        _scheduledEventRepositoryFactory = scheduledEventRepositoryFactory,
+       _clientSyncRepositoryFactory = clientSyncRepositoryFactory,
        _readStateRepository = readStateRepository,
        _typingExpiryScheduler = typingExpiryScheduler,
        _now = now;
@@ -110,6 +116,7 @@ final class DiscordAppController {
   final RoleRepositoryFactory? _roleRepositoryFactory;
   final InviteRepositoryFactory? _inviteRepositoryFactory;
   final ScheduledEventRepositoryFactory? _scheduledEventRepositoryFactory;
+  final ClientSyncRepositoryFactory? _clientSyncRepositoryFactory;
   final ReadStateRepository? _readStateRepository;
   final TypingExpiryScheduler _typingExpiryScheduler;
   final NowCallback _now;
@@ -128,11 +135,14 @@ final class DiscordAppController {
   RoleRepository? _roleRepository;
   InviteRepository? _inviteRepository;
   ScheduledEventRepository? _scheduledEventRepository;
+  ClientSyncRepository? _clientSyncRepository;
   Future<void>? _readStateWrite;
+  Future<void>? _readAckWrite;
   Map<String, TypingExpiryTask> _typingExpiryTasks = const {};
   Map<String, DateTime> _typingSentAt = const {};
   bool _initialized = false;
   bool _disposed = false;
+  bool _clientSyncDisabled = false;
 
   DiscordAppState get state => _state;
 
@@ -185,6 +195,9 @@ final class DiscordAppController {
       _roleRepository = _roleRepositoryFactory?.call(token);
       _inviteRepository = _inviteRepositoryFactory?.call(token);
       _scheduledEventRepository = _scheduledEventRepositoryFactory?.call(token);
+      _clientSyncRepository = _clientSyncRepositoryFactory?.call(token);
+      _clientSyncDisabled = false;
+      _update(_state.copyWith(clientApiWarning: null));
       await _gateway.connect(token);
       _accountSession?.tokenConnected(token);
       if (persist) {
@@ -660,48 +673,6 @@ final class DiscordAppController {
       );
     } on Object catch (error) {
       _showMessageError(error);
-    }
-  }
-
-  void _markChannelRead(String channelId, String? messageId) {
-    final current =
-        _state.readStates[channelId] ?? DiscordReadState.initial(channelId);
-    if (current.unreadCount == 0 &&
-        (messageId == null || current.lastReadMessageId == messageId)) {
-      return;
-    }
-    _setReadState(current.markRead(messageId, _now()));
-  }
-
-  void _incrementUnread(String channelId) {
-    final current =
-        _state.readStates[channelId] ?? DiscordReadState.initial(channelId);
-    _setReadState(current.incrementUnread(_now()));
-  }
-
-  void _setReadState(DiscordReadState next) {
-    _update(
-      _state.copyWith(readStates: {..._state.readStates, next.channelId: next}),
-    );
-    final repository = _readStateRepository;
-    if (repository != null) {
-      final pending = _readStateWrite;
-      _readStateWrite = pending == null
-          ? _persistReadState(repository, next)
-          : pending.then((_) => _persistReadState(repository, next));
-    }
-  }
-
-  Future<void> _persistReadState(
-    ReadStateRepository repository,
-    DiscordReadState state,
-  ) async {
-    try {
-      await repository.save(state);
-    } on Object catch (error) {
-      if (!_disposed) {
-        _showMessageError(error);
-      }
     }
   }
 

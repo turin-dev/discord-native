@@ -5,6 +5,8 @@ import 'package:flutter/material.dart';
 typedef EditMessageCallback =
     Future<void> Function(DiscordMessage message, String content);
 typedef MessageActionCallback = Future<void> Function(DiscordMessage message);
+typedef PollVoteCallback =
+    Future<void> Function(DiscordMessage message, int answerId);
 
 enum MessageAction { edit, togglePin, delete }
 

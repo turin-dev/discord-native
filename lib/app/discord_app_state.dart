@@ -29,6 +29,7 @@ final class DiscordAppState {
     this.searchState = const DiscordMessageSearchState(),
     this.readStates = const {},
     this.voiceUiState = const DiscordVoiceUiState(),
+    this.clientApiWarning,
     this.errorMessage,
   });
 
@@ -46,6 +47,7 @@ final class DiscordAppState {
   final DiscordMessageSearchState searchState;
   final Map<String, DiscordReadState> readStates;
   final DiscordVoiceUiState voiceUiState;
+  final String? clientApiWarning;
   final String? errorMessage;
 
   String get connectionLabel => switch (phase) {
@@ -70,6 +72,7 @@ final class DiscordAppState {
     DiscordMessageSearchState? searchState,
     Map<String, DiscordReadState>? readStates,
     DiscordVoiceUiState? voiceUiState,
+    Object? clientApiWarning = _unset,
     Object? errorMessage = _unset,
   }) {
     return DiscordAppState(
@@ -93,6 +96,9 @@ final class DiscordAppState {
       searchState: searchState ?? this.searchState,
       readStates: Map.unmodifiable(readStates ?? this.readStates),
       voiceUiState: voiceUiState ?? this.voiceUiState,
+      clientApiWarning: identical(clientApiWarning, _unset)
+          ? this.clientApiWarning
+          : clientApiWarning as String?,
       errorMessage: identical(errorMessage, _unset)
           ? this.errorMessage
           : errorMessage as String?,

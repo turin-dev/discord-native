@@ -26,6 +26,8 @@ abstract interface class MessageRepository {
 
   Future<DiscordMessage> sendPoll(String channelId, DiscordPollDraft draft);
 
+  Future<void> votePoll(String channelId, String messageId, Set<int> answerIds);
+
   Future<DiscordMessage> sendStickers(
     String channelId,
     List<String> stickerIds, {
@@ -229,6 +231,25 @@ final class DiscordMessageRepository implements MessageRepository {
       },
     );
     return DiscordMessage.fromJson(_readMessage(body));
+  }
+
+  @override
+  Future<void> votePoll(
+    String channelId,
+    String messageId,
+    Set<int> answerIds,
+  ) async {
+    if (channelId.isEmpty || messageId.isEmpty) {
+      throw const InvalidMessageException('투표 대상 메시지가 올바르지 않습니다.');
+    }
+    if (answerIds.length > 10 || answerIds.any((id) => id <= 0)) {
+      throw const InvalidMessageException('투표 답변 ID가 올바르지 않습니다.');
+    }
+    final sortedAnswerIds = answerIds.toList()..sort();
+    await _api.put(
+      '/channels/$channelId/polls/$messageId/answers/@me',
+      data: {'answer_ids': List<int>.unmodifiable(sortedAnswerIds)},
+    );
   }
 
   @override

@@ -1,15 +1,21 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:discord_native/features/messages/domain/discord_message_state.dart';
 import 'package:discord_native/features/workspace/presentation/discord_design_tokens.dart';
+import 'package:discord_native/features/workspace/presentation/message_actions.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_markdown_plus/flutter_markdown_plus.dart';
 import 'package:lottie/lottie.dart';
 import 'package:markdown/markdown.dart' as md;
 
 class DiscordMessageContent extends StatelessWidget {
-  const DiscordMessageContent({required this.message, super.key});
+  const DiscordMessageContent({
+    required this.message,
+    this.onVotePoll,
+    super.key,
+  });
 
   final DiscordMessage message;
+  final PollVoteCallback? onVotePoll;
 
   @override
   Widget build(BuildContext context) {
@@ -19,7 +25,13 @@ class DiscordMessageContent extends StatelessWidget {
         if (message.displayContent.isNotEmpty)
           DiscordMarkdownBody(data: message.markdownContent),
         if (message.poll case final poll?)
-          DiscordPollCard(key: ValueKey('poll-${message.id}'), poll: poll),
+          DiscordPollCard(
+            key: ValueKey('poll-${message.id}'),
+            poll: poll,
+            onSelectAnswer: onVotePoll == null
+                ? null
+                : (answerId) => onVotePoll!(message, answerId),
+          ),
         for (var index = 0; index < message.embeds.length; index += 1)
           DiscordEmbedCard(
             key: ValueKey('embed-${message.id}-$index'),
@@ -35,13 +47,45 @@ class DiscordMessageContent extends StatelessWidget {
   }
 }
 
-class DiscordPollCard extends StatelessWidget {
-  const DiscordPollCard({required this.poll, super.key});
+class DiscordPollCard extends StatefulWidget {
+  const DiscordPollCard({required this.poll, this.onSelectAnswer, super.key});
 
   final DiscordPoll poll;
+  final Future<void> Function(int answerId)? onSelectAnswer;
+
+  @override
+  State<DiscordPollCard> createState() => _DiscordPollCardState();
+}
+
+class _DiscordPollCardState extends State<DiscordPollCard> {
+  bool _submitting = false;
+  String? _errorMessage;
+
+  Future<void> _selectAnswer(int answerId) async {
+    final callback = widget.onSelectAnswer;
+    if (callback == null || _submitting || widget.poll.finalized) {
+      return;
+    }
+    setState(() {
+      _submitting = true;
+      _errorMessage = null;
+    });
+    try {
+      await callback(answerId);
+    } on Object catch (error) {
+      if (mounted) {
+        setState(() => _errorMessage = _pollVoteError(error));
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _submitting = false);
+      }
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
+    final poll = widget.poll;
     final palette = context.discordPalette;
     final maxVotes = poll.answers.fold<int>(
       1,
@@ -70,13 +114,35 @@ class DiscordPollCard extends StatelessWidget {
           ),
           const SizedBox(height: 12),
           for (final answer in poll.answers) ...[
-            _PollAnswerRow(answer: answer, maxVotes: maxVotes),
+            _PollAnswerRow(
+              answer: answer,
+              maxVotes: maxVotes,
+              onPressed:
+                  widget.onSelectAnswer == null || poll.finalized || _submitting
+                  ? null
+                  : () => _selectAnswer(answer.id),
+            ),
             const SizedBox(height: 8),
           ],
-          Text(
-            _pollStatus(poll),
-            style: TextStyle(color: palette.textFaint, fontSize: 12),
+          Row(
+            children: [
+              Expanded(
+                child: Text(
+                  _pollStatus(poll),
+                  style: TextStyle(color: palette.textFaint, fontSize: 12),
+                ),
+              ),
+              if (_submitting)
+                const SizedBox.square(
+                  dimension: 14,
+                  child: CircularProgressIndicator(strokeWidth: 2),
+                ),
+            ],
           ),
+          if (_errorMessage case final error?) ...[
+            const SizedBox(height: 6),
+            Text(error, style: TextStyle(color: palette.danger, fontSize: 12)),
+          ],
         ],
       ),
     );
@@ -84,64 +150,82 @@ class DiscordPollCard extends StatelessWidget {
 }
 
 class _PollAnswerRow extends StatelessWidget {
-  const _PollAnswerRow({required this.answer, required this.maxVotes});
+  const _PollAnswerRow({
+    required this.answer,
+    required this.maxVotes,
+    required this.onPressed,
+  });
 
   final DiscordPollAnswer answer;
   final int maxVotes;
+  final VoidCallback? onPressed;
 
   @override
   Widget build(BuildContext context) {
     final palette = context.discordPalette;
     return LayoutBuilder(
-      builder: (context, constraints) => Container(
-        height: 42,
-        decoration: BoxDecoration(
-          border: Border.all(
-            color: answer.meVoted ? palette.brand : palette.divider,
+      builder: (context, constraints) => InkWell(
+        key: ValueKey('poll-answer-${answer.id}'),
+        onTap: onPressed,
+        borderRadius: BorderRadius.circular(6),
+        child: Container(
+          height: 42,
+          decoration: BoxDecoration(
+            border: Border.all(
+              color: answer.meVoted ? palette.brand : palette.divider,
+            ),
+            borderRadius: BorderRadius.circular(6),
           ),
-          borderRadius: BorderRadius.circular(6),
-        ),
-        clipBehavior: Clip.antiAlias,
-        child: Stack(
-          children: [
-            SizedBox(
-              width: constraints.maxWidth * answer.voteCount / maxVotes,
-              child: ColoredBox(color: palette.brand.withValues(alpha: 0.18)),
-            ),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 12),
-              child: Row(
-                children: [
-                  Icon(
-                    answer.meVoted
-                        ? Icons.check_circle
-                        : Icons.radio_button_unchecked,
-                    size: 18,
-                    color: answer.meVoted ? palette.brand : palette.textMuted,
-                  ),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: Text(
-                      answer.text,
-                      overflow: TextOverflow.ellipsis,
-                      style: TextStyle(color: palette.textNormal),
-                    ),
-                  ),
-                  Text(
-                    '${answer.voteCount}',
-                    style: TextStyle(
-                      color: palette.textMuted,
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
-                ],
+          clipBehavior: Clip.antiAlias,
+          child: Stack(
+            children: [
+              SizedBox(
+                width: constraints.maxWidth * answer.voteCount / maxVotes,
+                child: ColoredBox(color: palette.brand.withValues(alpha: 0.18)),
               ),
-            ),
-          ],
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 12),
+                child: Row(
+                  children: [
+                    Icon(
+                      answer.meVoted
+                          ? Icons.check_circle
+                          : Icons.radio_button_unchecked,
+                      size: 18,
+                      color: answer.meVoted ? palette.brand : palette.textMuted,
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        answer.text,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(color: palette.textNormal),
+                      ),
+                    ),
+                    Text(
+                      '${answer.voteCount}',
+                      style: TextStyle(
+                        color: palette.textMuted,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );
   }
+}
+
+String _pollVoteError(Object error) {
+  if (error is FormatException) {
+    return error.message;
+  }
+  final message = error.toString();
+  return message.isEmpty ? '투표 요청에 실패했습니다.' : message;
 }
 
 String _pollStatus(DiscordPoll poll) {

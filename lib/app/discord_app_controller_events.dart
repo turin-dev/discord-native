@@ -26,7 +26,10 @@ extension DiscordAppControllerEvents on DiscordAppController {
       currentUserId: _state.workspace.currentUser?.id,
     );
     final workspace = _state.workspace.payloadReceived(event);
-    final nextMessages = _state.messageState.payloadReceived(event);
+    final nextMessages = _state.messageState.payloadReceived(
+      event,
+      currentUserId: workspace.currentUser?.id,
+    );
     final typingState = _state.typingState.payloadReceived(
       event,
       now: receivedAt,
@@ -145,10 +148,19 @@ extension DiscordAppControllerEvents on DiscordAppController {
   }
 
   void _receiveReadEvent(Map<String, Object?> event) {
-    if (event['t'] != 'MESSAGE_CREATE') {
-      return;
+    switch (event['t']) {
+      case 'READY':
+        _receiveReadyReadStates(event['d']);
+      case 'MESSAGE_ACK':
+        _receiveMessageAck(event['d']);
+      case 'GUILD_CREATE' || 'CHANNEL_UNREAD_UPDATE':
+        _reconcileWorkspaceReadStates();
+      case 'MESSAGE_CREATE':
+        _receiveMessageCreateRead(event['d']);
     }
-    final rawData = event['d'];
+  }
+
+  void _receiveMessageCreateRead(Object? rawData) {
     if (rawData is! Map) {
       return;
     }

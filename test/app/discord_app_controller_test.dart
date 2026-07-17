@@ -11,6 +11,7 @@ import 'package:discord_native/features/messages/data/attachment_download_servic
 import 'package:discord_native/features/messages/domain/discord_message_state.dart';
 import 'package:discord_native/features/workspace/data/discord_direct_message_repository.dart';
 import 'package:discord_native/features/workspace/data/discord_channel_management_repository.dart';
+import 'package:discord_native/features/workspace/data/discord_client_sync_repository.dart';
 import 'package:discord_native/features/workspace/data/discord_role_repository.dart';
 import 'package:discord_native/features/workspace/data/discord_invite_repository.dart';
 import 'package:discord_native/features/workspace/data/discord_scheduled_event_repository.dart';
@@ -188,6 +189,101 @@ void main() {
         controller.state.readStates['channel-1']?.lastReadMessageId,
         'message-sticker',
       );
+    });
+
+    test('poll 답변 선택을 private client API에 위임하고 메시지에 반영한다', () async {
+      final pollMessage = DiscordMessage(
+        id: 'message-poll',
+        channelId: 'channel-1',
+        content: '',
+        authorId: 'user-1',
+        authorName: 'alice',
+        timestamp: DateTime.utc(2026, 7, 16, 10),
+        poll: const DiscordPoll(
+          question: '점심 메뉴는?',
+          answers: [
+            DiscordPollAnswer(id: 1, text: '한식', voteCount: 1, meVoted: true),
+            DiscordPollAnswer(id: 2, text: '양식', voteCount: 0, meVoted: false),
+          ],
+          allowMultiselect: false,
+          finalized: false,
+        ),
+      );
+      final messages = _FakeMessageRepository(initialMessages: [pollMessage]);
+      controller = DiscordAppController(
+        tokenRepository: tokens,
+        gateway: gateway,
+        messageRepositoryFactory: (_) => messages,
+      );
+      await controller.initialize();
+      await controller.connect('manual.token');
+      gateway.emitEvent({
+        'op': 0,
+        't': 'GUILD_CREATE',
+        'd': {
+          'id': 'guild-1',
+          'name': '개발 서버',
+          'channels': [
+            {
+              'id': 'channel-1',
+              'guild_id': 'guild-1',
+              'name': 'general',
+              'type': 0,
+              'position': 0,
+            },
+          ],
+        },
+      });
+      await pumpEventQueue();
+
+      await controller.votePoll(pollMessage, 2);
+
+      expect(messages.votedMessageId, 'message-poll');
+      expect(messages.votedAnswerIds, {2});
+      final answers =
+          controller.state.messageState.messages.single.poll!.answers;
+      expect(answers.first.meVoted, isFalse);
+      expect(answers.last.meVoted, isTrue);
+    });
+
+    test('read ACK가 지원되지 않아도 로컬 읽음 상태를 보존하고 경고한다', () async {
+      final messages = _FakeMessageRepository();
+      final sync = _FakeClientSyncRepository(
+        error: const DiscordHttpException(statusCode: 404, message: 'Unknown'),
+      );
+      controller = DiscordAppController(
+        tokenRepository: tokens,
+        gateway: gateway,
+        messageRepositoryFactory: (_) => messages,
+        clientSyncRepositoryFactory: (_) => sync,
+      );
+      await controller.initialize();
+      await controller.connect('manual.token');
+      gateway.emitEvent({
+        'op': 0,
+        't': 'GUILD_CREATE',
+        'd': {
+          'id': 'guild-1',
+          'name': '개발 서버',
+          'channels': [
+            {
+              'id': 'channel-1',
+              'guild_id': 'guild-1',
+              'name': 'general',
+              'type': 0,
+              'position': 0,
+            },
+          ],
+        },
+      });
+      await pumpEventQueue();
+
+      expect(
+        controller.state.readStates['channel-1']?.lastReadMessageId,
+        'message-1',
+      );
+      expect(sync.acknowledgedMessageIds, ['message-1']);
+      expect(controller.state.clientApiWarning, contains('로컬에는 저장'));
     });
 
     test('guild 선택 시 해당 guild의 첫 채널을 선택한다', () async {
@@ -784,6 +880,128 @@ void main() {
       await controller.logout();
 
       expect(reads.states, isEmpty);
+    });
+
+    test('READY와 MESSAGE_ACK를 로컬 read state와 양방향 조정한다', () async {
+      final reads = _FakeReadStateRepository({
+        'channel-1': DiscordReadState(
+          channelId: 'channel-1',
+          lastReadMessageId: '100',
+          unreadCount: 3,
+          updatedAt: DateTime.utc(2026, 7, 16, 9),
+        ),
+        'channel-2': DiscordReadState(
+          channelId: 'channel-2',
+          lastReadMessageId: '300',
+          unreadCount: 0,
+          updatedAt: DateTime.utc(2026, 7, 16, 9),
+        ),
+      });
+      final sync = _FakeClientSyncRepository();
+      controller = DiscordAppController(
+        tokenRepository: tokens,
+        gateway: gateway,
+        readStateRepository: reads,
+        clientSyncRepositoryFactory: (_) => sync,
+        now: () => DateTime.utc(2026, 7, 16, 12),
+      );
+      await controller.initialize();
+      await controller.connect('manual.token');
+
+      gateway.emitEvent({
+        'op': 0,
+        't': 'READY',
+        'd': {
+          'user': {'id': 'user-me', 'username': 'me'},
+          'guilds': [
+            {'id': 'guild-1', 'name': '개발 서버'},
+          ],
+          'read_state': {
+            'entries': [
+              {
+                'id': 'channel-1',
+                'read_state_type': 0,
+                'last_message_id': '200',
+                'mention_count': 0,
+              },
+              {
+                'id': 'channel-2',
+                'read_state_type': 0,
+                'last_message_id': '200',
+                'mention_count': 0,
+              },
+            ],
+            'version': 9,
+            'partial': false,
+          },
+        },
+      });
+      await pumpEventQueue();
+
+      expect(
+        controller.state.readStates['channel-1']?.lastReadMessageId,
+        '200',
+      );
+      expect(controller.state.readStates['channel-1']?.unreadCount, 0);
+      expect(
+        controller.state.readStates['channel-2']?.lastReadMessageId,
+        '300',
+      );
+      expect(sync.acknowledgedMessageIds, ['300']);
+
+      gateway.emitEvent({
+        'op': 0,
+        't': 'GUILD_CREATE',
+        'd': {
+          'id': 'guild-1',
+          'name': '개발 서버',
+          'channels': [
+            {
+              'id': 'channel-1',
+              'guild_id': 'guild-1',
+              'name': 'general',
+              'type': 0,
+              'position': 0,
+              'last_message_id': '250',
+            },
+            {
+              'id': 'channel-2',
+              'guild_id': 'guild-1',
+              'name': 'random',
+              'type': 0,
+              'position': 1,
+              'last_message_id': '350',
+            },
+          ],
+        },
+      });
+      await pumpEventQueue();
+
+      expect(
+        controller.state.readStates['channel-1']?.lastReadMessageId,
+        '250',
+      );
+      expect(controller.state.readStates['channel-2']?.unreadCount, 1);
+      expect(sync.acknowledgedMessageIds, ['300', '250']);
+
+      gateway.emitEvent({
+        'op': 0,
+        't': 'MESSAGE_ACK',
+        'd': {
+          'channel_id': 'channel-1',
+          'message_id': '150',
+          'manual': true,
+          'version': 10,
+        },
+      });
+      await pumpEventQueue();
+
+      expect(
+        controller.state.readStates['channel-1']?.lastReadMessageId,
+        '150',
+      );
+      expect(controller.state.readStates['channel-1']?.unreadCount, 1);
+      expect(reads.savedStates.last.lastReadMessageId, '150');
     });
 
     test('메시지 편집·고정·삭제를 repository와 상태에 반영한다', () async {
@@ -1421,6 +1639,8 @@ final class _FakeMessageRepository implements MessageRepository {
   String? beforeMessageId;
   String? fetchedChannelId;
   List<String> sentStickerIds = const [];
+  String? votedMessageId;
+  Set<int>? votedAnswerIds;
   int typingCount = 0;
 
   @override
@@ -1543,6 +1763,16 @@ final class _FakeMessageRepository implements MessageRepository {
   }
 
   @override
+  Future<void> votePoll(
+    String channelId,
+    String messageId,
+    Set<int> answerIds,
+  ) async {
+    votedMessageId = messageId;
+    votedAnswerIds = Set.unmodifiable(answerIds);
+  }
+
+  @override
   Future<DiscordMessage> sendStickers(
     String channelId,
     List<String> stickerIds, {
@@ -1655,6 +1885,24 @@ final class _FakeMessageRepository implements MessageRepository {
         ),
       ],
     );
+  }
+}
+
+final class _FakeClientSyncRepository implements ClientSyncRepository {
+  _FakeClientSyncRepository({this.error});
+
+  final Object? error;
+  List<String> acknowledgedMessageIds = const [];
+
+  @override
+  Future<void> acknowledgeRead(String channelId, String messageId) async {
+    acknowledgedMessageIds = List.unmodifiable([
+      ...acknowledgedMessageIds,
+      messageId,
+    ]);
+    if (error case final value?) {
+      throw value;
+    }
   }
 }
 

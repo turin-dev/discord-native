@@ -90,9 +90,26 @@ void main() {
     expect(toggledChannelId, 'channel-2');
   });
 
+  testWidgets('private client API 실패를 로컬 fallback 경고로 표시한다', (tester) async {
+    await _setDesktopSurface(tester);
+    await tester.pumpWidget(
+      MaterialApp(
+        home: _workspace(
+          state: _state(),
+          onSelectChannel: (_) {},
+          clientApiWarning: '읽음 상태는 로컬에는 저장됩니다.',
+        ),
+      ),
+    );
+
+    expect(find.byKey(const ValueKey('client-api-warning')), findsOneWidget);
+    expect(find.text('읽음 상태는 로컬에는 저장됩니다.'), findsOneWidget);
+  });
+
   testWidgets('투표를 렌더링하고 composer에서 새 투표를 만든다', (tester) async {
     await _setDesktopSurface(tester);
     DiscordPollDraft? submitted;
+    int? selectedAnswerId;
     await tester.pumpWidget(
       MaterialApp(
         home: _workspace(
@@ -100,12 +117,18 @@ void main() {
           messageState: _pollMessageState(),
           onSelectChannel: (_) {},
           onSendPoll: (draft) async => submitted = draft,
+          onVotePoll: (message, answerId) async {
+            selectedAnswerId = answerId;
+          },
         ),
       ),
     );
 
     expect(find.text('오늘 배포할까요?'), findsOneWidget);
     expect(find.text('3표 · 단일 선택 · 진행 중'), findsOneWidget);
+    await tester.tap(find.byKey(const ValueKey('poll-answer-2')));
+    await tester.pump();
+    expect(selectedAnswerId, 2);
     await tester.tap(find.byTooltip('파일 첨부'));
     await tester.pumpAndSettle();
     await tester.tap(find.text('투표 만들기'));
@@ -134,9 +157,11 @@ DiscordWorkspacePage _workspace({
   String? selectedChannelId = 'channel-1',
   DiscordMessageState messageState = const DiscordMessageState(),
   Future<void> Function(DiscordPollDraft draft)? onSendPoll,
+  PollVoteCallback? onVotePoll,
   ValueChanged<double>? onChannelSidebarWidthChanged,
   Set<String> pinnedChannelIds = const {},
   ValueChanged<String>? onToggleChannelPinned,
+  String? clientApiWarning,
 }) {
   return DiscordWorkspacePage(
     state: state,
@@ -147,9 +172,11 @@ DiscordWorkspacePage _workspace({
     onSelectGuild: (_) {},
     onSelectChannel: onSelectChannel,
     onSendPoll: onSendPoll,
+    onVotePoll: onVotePoll,
     onChannelSidebarWidthChanged: onChannelSidebarWidthChanged,
     pinnedChannelIds: pinnedChannelIds,
     onToggleChannelPinned: onToggleChannelPinned,
+    clientApiWarning: clientApiWarning,
     onLogout: () {},
   );
 }

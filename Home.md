@@ -20,4 +20,4 @@ Discord Native의 현재 구현과 운영 기준을 연결하는 진입점이다
 - [[Open Questions]]
 - [[Change Log]]
 
-검증된 구현 범위는 인증·다중 계정, Gateway/REST, 길드·DM·친구·메시징·투표·검색·관리 기능, Voice v8/UDP/RTP/Opus/AEAD/DAVE, WebRTC 카메라·Go Live, Windows 트레이·알림·전역 단축키·Inbox·테마·표시 밀도·가변 sidebar·채널 고정·탐색 history·오디오 장치 선택·오프라인 캐시·서명 업데이트이다. 현재 전체 검증은 analyzer 0건, 337개 테스트와 80.28% line coverage를 통과했다. 마지막 측정 Release gate는 시작 0.200초·메모리 99.60MB·유휴 CPU 0%·설치 디렉터리 59.05MB다. 패키징과 운영 절차는 [[Windows Release]], 프로토콜과 플랫폼 제약은 [[Open Questions]]에서 관리한다.
+검증된 구현 범위는 인증·다중 계정, Gateway/REST, 길드·DM·친구·메시징·투표 생성·참여·검색·관리 기능과 양방향 read-state 동기화, Voice v8/UDP/RTP/Opus/AEAD/DAVE, WebRTC 카메라·Go Live, Windows 트레이·알림·전역 단축키·Inbox·테마·표시 밀도·가변 sidebar·채널 고정·탐색 history·오디오 장치 선택·오프라인 캐시·서명 업데이트이다. 현재 전체 검증은 analyzer 0건, 347개 테스트와 80.58% line coverage를 통과했다. 마지막 측정 Release gate는 시작 0.200초·메모리 99.60MB·유휴 CPU 0%·설치 디렉터리 59.05MB다. 패키징과 운영 절차는 [[Windows Release]], 프로토콜과 플랫폼 제약은 [[Open Questions]]에서 관리한다.

@@ -129,6 +129,29 @@ void main() {
       });
     });
 
+    test('현재 사용자 poll vote endpoint에 선택한 답변을 PUT한다', () async {
+      final api = _FakeDiscordRestApi();
+      final repository = DiscordMessageRepository(api);
+
+      await repository.votePoll('channel-1', 'message-poll', {3, 1});
+
+      expect(api.putPaths, [
+        '/channels/channel-1/polls/message-poll/answers/@me',
+      ]);
+      expect(api.lastPutData, {
+        'answer_ids': [1, 3],
+      });
+    });
+
+    test('빈 answer_ids로 기존 poll vote를 모두 취소한다', () async {
+      final api = _FakeDiscordRestApi();
+      final repository = DiscordMessageRepository(api);
+
+      await repository.votePoll('channel-1', 'message-poll', const {});
+
+      expect(api.lastPutData, {'answer_ids': const <int>[]});
+    });
+
     test('질문과 답변 제한을 벗어난 투표는 API 전에 거부한다', () async {
       final api = _FakeDiscordRestApi();
       final repository = DiscordMessageRepository(api);
@@ -487,6 +510,7 @@ final class _FakeDiscordRestApi implements DiscordRestApi {
   List<DiscordUploadFile> multipartFiles = const [];
   String? lastPatchPath;
   Object? lastPatchData;
+  Object? lastPutData;
 
   @override
   Future<Object?> get(
@@ -522,6 +546,7 @@ final class _FakeDiscordRestApi implements DiscordRestApi {
   @override
   Future<Object?> put(String path, {Object? data}) async {
     putPaths = List.unmodifiable([...putPaths, path]);
+    lastPutData = data;
     return null;
   }
 

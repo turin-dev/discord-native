@@ -49,6 +49,7 @@ class ConversationPanel extends StatefulWidget {
     required this.onLoadOlderMessages,
     required this.onSendReply,
     required this.onToggleReaction,
+    required this.onVotePoll,
     required this.onEditMessage,
     required this.onDeleteMessage,
     required this.onTogglePinned,
@@ -78,6 +79,7 @@ class ConversationPanel extends StatefulWidget {
   final LoadOlderMessagesCallback? onLoadOlderMessages;
   final SendReplyCallback? onSendReply;
   final ToggleReactionCallback? onToggleReaction;
+  final PollVoteCallback? onVotePoll;
   final EditMessageCallback? onEditMessage;
   final MessageActionCallback? onDeleteMessage;
   final MessageActionCallback? onTogglePinned;
@@ -246,6 +248,7 @@ class _ConversationPanelState extends State<ConversationPanel> {
                 ? _startThread
                 : null,
             onToggleReaction: widget.onToggleReaction,
+            onVotePoll: widget.onVotePoll,
             onEditMessage: widget.onEditMessage == null ? null : _editMessage,
             onDeleteMessage: widget.onDeleteMessage == null
                 ? null
@@ -303,6 +306,7 @@ class _MessageList extends StatelessWidget {
     required this.onReply,
     required this.onStartThread,
     required this.onToggleReaction,
+    required this.onVotePoll,
     required this.onEditMessage,
     required this.onDeleteMessage,
     required this.onTogglePinned,
@@ -317,6 +321,7 @@ class _MessageList extends StatelessWidget {
   final ValueChanged<DiscordMessage> onReply;
   final ValueChanged<DiscordMessage>? onStartThread;
   final ToggleReactionCallback? onToggleReaction;
+  final PollVoteCallback? onVotePoll;
   final MessageActionCallback? onEditMessage;
   final MessageActionCallback? onDeleteMessage;
   final MessageActionCallback? onTogglePinned;
@@ -399,6 +404,7 @@ class _MessageList extends StatelessWidget {
               ? null
               : () => onStartThread!(message),
           onToggleReaction: onToggleReaction,
+          onVotePoll: onVotePoll,
           canEdit: isOwnMessage,
           canDelete: isOwnMessage || canManageMessages,
           onEdit: onEditMessage == null ? null : () => onEditMessage!(message),

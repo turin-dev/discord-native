@@ -95,6 +95,42 @@ void main() {
       ]);
     });
 
+    test('CHANNEL_UNREAD_UPDATE로 채널의 최신 메시지를 불변 갱신한다', () {
+      final initial = const DiscordWorkspaceState().payloadReceived({
+        'op': 0,
+        't': 'GUILD_CREATE',
+        'd': {
+          'id': 'guild-1',
+          'name': '개발 서버',
+          'channels': [
+            {
+              'id': 'channel-1',
+              'guild_id': 'guild-1',
+              'name': 'general',
+              'type': 0,
+              'position': 0,
+              'last_message_id': '100',
+            },
+          ],
+        },
+      });
+
+      final updated = initial.payloadReceived({
+        'op': 0,
+        't': 'CHANNEL_UNREAD_UPDATE',
+        'd': {
+          'guild_id': 'guild-1',
+          'channel_unread_updates': [
+            {'id': 'channel-1', 'last_message_id': '250'},
+          ],
+        },
+      });
+
+      expect(initial.channels.single.lastMessageId, '100');
+      expect(updated.channels.single.lastMessageId, '250');
+      expect(updated.channels.single, isNot(same(initial.channels.single)));
+    });
+
     test('GUILD_CREATE에서 owner, role, permission overwrite를 읽는다', () {
       final state = const DiscordWorkspaceState().payloadReceived({
         'op': 0,

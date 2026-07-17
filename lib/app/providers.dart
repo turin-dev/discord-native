@@ -31,6 +31,7 @@ import 'package:discord_native/features/video/data/native_discord_voice_rtc_tran
 import 'package:discord_native/features/voice/domain/discord_audio_device.dart';
 import 'package:discord_native/features/workspace/data/discord_direct_message_repository.dart';
 import 'package:discord_native/features/workspace/data/discord_channel_management_repository.dart';
+import 'package:discord_native/features/workspace/data/discord_client_sync_repository.dart';
 import 'package:discord_native/features/workspace/data/discord_relationship_repository.dart';
 import 'package:discord_native/features/workspace/data/discord_role_repository.dart';
 import 'package:discord_native/features/workspace/data/discord_invite_repository.dart';
@@ -195,6 +196,11 @@ final appControllerProvider = Provider<DiscordAppController>((ref) {
     },
     scheduledEventRepositoryFactory: (token) {
       return DiscordScheduledEventRepository(
+        DiscordRestClient(token: token, executor: DioDiscordRequestExecutor()),
+      );
+    },
+    clientSyncRepositoryFactory: (token) {
+      return DiscordClientSyncRepository(
         DiscordRestClient(token: token, executor: DioDiscordRequestExecutor()),
       );
     },

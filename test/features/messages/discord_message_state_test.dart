@@ -254,5 +254,65 @@ void main() {
       expect(message.poll?.answers.first.meVoted, isTrue);
       expect(message.poll?.totalVotes, 4);
     });
+
+    test('poll 선택을 불변 갱신하고 내 Gateway event를 중복 집계하지 않는다', () {
+      final state = DiscordMessageState.loaded('channel-1', [_pollMessage()]);
+
+      final selected = state.setPollSelection('message-poll', {2});
+      final afterOwnEvent = selected.payloadReceived({
+        'op': 0,
+        't': 'MESSAGE_POLL_VOTE_ADD',
+        'd': {
+          'channel_id': 'channel-1',
+          'message_id': 'message-poll',
+          'user_id': 'user-me',
+          'answer_id': 2,
+        },
+      }, currentUserId: 'user-me');
+
+      expect(state.messages.single.poll?.answers.first.meVoted, isTrue);
+      expect(selected.messages.single.poll?.answers.first.meVoted, isFalse);
+      expect(selected.messages.single.poll?.answers.last.meVoted, isTrue);
+      expect(selected.messages.single.poll?.answers.last.voteCount, 2);
+      expect(afterOwnEvent.messages.single.poll?.answers.last.voteCount, 2);
+    });
+
+    test('다른 사용자의 poll Gateway event를 집계한다', () {
+      final state = DiscordMessageState.loaded('channel-1', [_pollMessage()]);
+
+      final added = state.payloadReceived({
+        'op': 0,
+        't': 'MESSAGE_POLL_VOTE_ADD',
+        'd': {
+          'channel_id': 'channel-1',
+          'message_id': 'message-poll',
+          'user_id': 'user-other',
+          'answer_id': 2,
+        },
+      }, currentUserId: 'user-me');
+
+      expect(added.messages.single.poll?.answers.last.voteCount, 2);
+      expect(added.messages.single.poll?.answers.last.meVoted, isFalse);
+    });
   });
+}
+
+DiscordMessage _pollMessage() {
+  return DiscordMessage(
+    id: 'message-poll',
+    channelId: 'channel-1',
+    content: '',
+    authorId: 'user-author',
+    authorName: 'alice',
+    timestamp: DateTime.utc(2026, 7, 16, 10),
+    poll: const DiscordPoll(
+      question: '점심 메뉴는?',
+      answers: [
+        DiscordPollAnswer(id: 1, text: '김치찌개', voteCount: 3, meVoted: true),
+        DiscordPollAnswer(id: 2, text: '돈가스', voteCount: 1, meVoted: false),
+      ],
+      allowMultiselect: false,
+      finalized: false,
+    ),
+  );
 }

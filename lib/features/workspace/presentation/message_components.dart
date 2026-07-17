@@ -16,6 +16,7 @@ class MessageBubble extends StatefulWidget {
     required this.message,
     required this.onReply,
     required this.onToggleReaction,
+    required this.onVotePoll,
     required this.canEdit,
     required this.canDelete,
     required this.onEdit,
@@ -30,6 +31,7 @@ class MessageBubble extends StatefulWidget {
   final VoidCallback onReply;
   final VoidCallback? onStartThread;
   final MessageReactionCallback? onToggleReaction;
+  final PollVoteCallback? onVotePoll;
   final bool canEdit;
   final bool canDelete;
   final VoidCallback? onEdit;
@@ -75,6 +77,7 @@ class _MessageBubbleState extends State<MessageBubble> {
                   message: widget.message,
                   timeLabel: timeLabel,
                   onToggleReaction: widget.onToggleReaction,
+                  onVotePoll: widget.onVotePoll,
                   onDownloadAttachment: widget.onDownloadAttachment,
                 ),
               ),
@@ -103,12 +106,14 @@ class _MessageBody extends StatelessWidget {
     required this.message,
     required this.timeLabel,
     required this.onToggleReaction,
+    required this.onVotePoll,
     required this.onDownloadAttachment,
   });
 
   final DiscordMessage message;
   final String timeLabel;
   final MessageReactionCallback? onToggleReaction;
+  final PollVoteCallback? onVotePoll;
   final Future<String?> Function(DiscordAttachment attachment)?
   onDownloadAttachment;
 
@@ -145,7 +150,7 @@ class _MessageContentColumn extends StatelessWidget {
             message.stickers.isNotEmpty ||
             message.poll != null) ...[
           const SizedBox(height: 2),
-          DiscordMessageContent(message: message),
+          DiscordMessageContent(message: message, onVotePoll: owner.onVotePoll),
         ],
         for (final attachment in message.attachments)
           MessageAttachmentCard(

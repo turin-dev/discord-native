@@ -11,6 +11,7 @@ import 'package:discord_native/features/workspace/data/read_state_repository.dar
 import 'package:discord_native/features/workspace/domain/discord_people_state.dart';
 import 'package:discord_native/features/workspace/domain/discord_permissions.dart';
 import 'package:discord_native/features/workspace/presentation/conversation_panel.dart';
+import 'package:discord_native/features/workspace/presentation/client_api_warning.dart';
 import 'package:discord_native/features/workspace/presentation/message_actions.dart';
 import 'package:discord_native/features/workspace/presentation/message_search_panel.dart';
 import 'package:discord_native/features/workspace/presentation/thread_controls.dart';
@@ -27,6 +28,9 @@ import 'package:discord_native/features/voice/domain/discord_voice_ui_state.dart
 import 'package:discord_native/features/voice/domain/discord_voice_media_state.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_webrtc/flutter_webrtc.dart';
+
+export 'package:discord_native/features/workspace/presentation/message_actions.dart'
+    show PollVoteCallback;
 
 class DiscordWorkspacePage extends StatefulWidget {
   const DiscordWorkspacePage({
@@ -48,6 +52,7 @@ class DiscordWorkspacePage extends StatefulWidget {
     this.onLoadOlderMessages,
     this.onSendReply,
     this.onToggleReaction,
+    this.onVotePoll,
     this.onEditMessage,
     this.onDeleteMessage,
     this.onTogglePinned,
@@ -106,6 +111,7 @@ class DiscordWorkspacePage extends StatefulWidget {
     this.onChannelSidebarWidthChanged,
     this.pinnedChannelIds = const {},
     this.onToggleChannelPinned,
+    this.clientApiWarning,
     super.key,
   });
 
@@ -136,6 +142,7 @@ class DiscordWorkspacePage extends StatefulWidget {
   final ValueChanged<double>? onChannelSidebarWidthChanged;
   final Set<String> pinnedChannelIds;
   final ValueChanged<String>? onToggleChannelPinned;
+  final String? clientApiWarning;
   final String? selectedGuildId;
   final String? selectedChannelId;
   final String connectionLabel;
@@ -147,6 +154,7 @@ class DiscordWorkspacePage extends StatefulWidget {
   final LoadOlderMessagesCallback? onLoadOlderMessages;
   final SendReplyCallback? onSendReply;
   final ToggleReactionCallback? onToggleReaction;
+  final PollVoteCallback? onVotePoll;
   final EditMessageCallback? onEditMessage;
   final MessageActionCallback? onDeleteMessage;
   final MessageActionCallback? onTogglePinned;
@@ -295,6 +303,8 @@ class DiscordWorkspacePage extends StatefulWidget {
                     }
                   },
           ),
+          if (clientApiWarning case final warning?)
+            ClientApiWarning(message: warning),
           Expanded(
             child: Row(
               children: [
@@ -390,6 +400,7 @@ class DiscordWorkspacePage extends StatefulWidget {
                           onLoadOlderMessages: onLoadOlderMessages,
                           onSendReply: onSendReply,
                           onToggleReaction: onToggleReaction,
+                          onVotePoll: onVotePoll,
                           onEditMessage: onEditMessage,
                           onDeleteMessage: onDeleteMessage,
                           onTogglePinned: onTogglePinned,

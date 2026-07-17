@@ -1,3 +1,5 @@
+part 'discord_poll.dart';
+
 final class DiscordAttachment {
   const DiscordAttachment({
     required this.id,
@@ -192,104 +194,6 @@ final class DiscordSticker {
   final String id;
   final String name;
   final int formatType;
-}
-
-final class DiscordPollDraft {
-  const DiscordPollDraft({
-    required this.question,
-    required this.answers,
-    required this.durationHours,
-    required this.allowMultiselect,
-  });
-
-  final String question;
-  final List<String> answers;
-  final int durationHours;
-  final bool allowMultiselect;
-}
-
-final class DiscordPollAnswer {
-  const DiscordPollAnswer({
-    required this.id,
-    required this.text,
-    required this.voteCount,
-    required this.meVoted,
-    this.emojiName,
-    this.emojiId,
-  });
-
-  final int id;
-  final String text;
-  final int voteCount;
-  final bool meVoted;
-  final String? emojiName;
-  final String? emojiId;
-}
-
-final class DiscordPoll {
-  const DiscordPoll({
-    required this.question,
-    required this.answers,
-    required this.allowMultiselect,
-    required this.finalized,
-    this.expiry,
-  });
-
-  factory DiscordPoll.fromJson(Map<String, Object?> json) {
-    final question = _readMap(json['question'], 'poll.question');
-    final results = _optionalMap(json['results']);
-    final counts = Map<int, Map<String, Object?>>.fromEntries(
-      _readList(results?['answer_counts']).map(_readPollCountEntry).nonNulls,
-    );
-    return DiscordPoll(
-      question: _requiredString(question['text'], 'poll.question.text'),
-      answers: List.unmodifiable([
-        for (final item in _readList(json['answers']))
-          _readPollAnswer(_readMap(item, 'poll.answer'), counts),
-      ]),
-      allowMultiselect: json['allow_multiselect'] == true,
-      finalized: results?['is_finalized'] == true,
-      expiry: _optionalDate(json['expiry']),
-    );
-  }
-
-  final String question;
-  final List<DiscordPollAnswer> answers;
-  final bool allowMultiselect;
-  final bool finalized;
-  final DateTime? expiry;
-
-  int get totalVotes =>
-      answers.fold(0, (total, answer) => total + answer.voteCount);
-}
-
-MapEntry<int, Map<String, Object?>>? _readPollCountEntry(Object? value) {
-  final count = _optionalMap(value);
-  final id = _optionalInt(count?['id']);
-  return count == null || id == null ? null : MapEntry(id, count);
-}
-
-DiscordPollAnswer _readPollAnswer(
-  Map<String, Object?> json,
-  Map<int, Map<String, Object?>> counts,
-) {
-  final id = _requiredInt(json['answer_id'], 'poll.answer.id');
-  final media = _readMap(json['poll_media'], 'poll.answer.media');
-  final emoji = _optionalMap(media['emoji']);
-  final count = counts[id];
-  return DiscordPollAnswer(
-    id: id,
-    text: _requiredString(media['text'], 'poll.answer.text'),
-    voteCount: _optionalInt(count?['count']) ?? 0,
-    meVoted: count?['me_voted'] == true,
-    emojiName: _optionalString(emoji?['name']),
-    emojiId: _optionalString(emoji?['id']),
-  );
-}
-
-DiscordPoll? _optionalPoll(Object? value) {
-  final json = _optionalMap(value);
-  return json == null ? null : DiscordPoll.fromJson(json);
 }
 
 final class DiscordMessageReference {
@@ -526,7 +430,7 @@ final class DiscordMessage {
     );
   }
 
-  DiscordMessage copyWith({String? content, bool? pinned}) {
+  DiscordMessage copyWith({String? content, DiscordPoll? poll, bool? pinned}) {
     return DiscordMessage(
       id: id,
       channelId: channelId,
@@ -543,7 +447,7 @@ final class DiscordMessage {
       mentionRoleIds: mentionRoleIds,
       embeds: embeds,
       stickers: stickers,
-      poll: poll,
+      poll: poll ?? this.poll,
       pinned: pinned ?? this.pinned,
     );
   }
@@ -580,7 +484,10 @@ final class DiscordMessageState {
   final String? errorMessage;
   final String? olderErrorMessage;
 
-  DiscordMessageState payloadReceived(Map<String, Object?> payload) {
+  DiscordMessageState payloadReceived(
+    Map<String, Object?> payload, {
+    String? currentUserId,
+  }) {
     if (payload['op'] != 0) {
       return this;
     }
@@ -593,8 +500,55 @@ final class DiscordMessageState {
       'MESSAGE_CREATE' => add(DiscordMessage.fromJson(data)),
       'MESSAGE_UPDATE' => update(data),
       'MESSAGE_DELETE' => remove(_requiredString(data['id'], 'message.id')),
+      'MESSAGE_POLL_VOTE_ADD' => updatePollVote(
+        _requiredString(data['message_id'], 'poll vote.message_id'),
+        _requiredInt(data['answer_id'], 'poll vote.answer_id'),
+        voted: true,
+        isCurrentUser:
+            currentUserId != null && data['user_id'] == currentUserId,
+      ),
+      'MESSAGE_POLL_VOTE_REMOVE' => updatePollVote(
+        _requiredString(data['message_id'], 'poll vote.message_id'),
+        _requiredInt(data['answer_id'], 'poll vote.answer_id'),
+        voted: false,
+        isCurrentUser:
+            currentUserId != null && data['user_id'] == currentUserId,
+      ),
       _ => this,
     };
+  }
+
+  DiscordMessageState setPollSelection(String messageId, Set<int> answerIds) {
+    for (final message in messages) {
+      if (message.id == messageId && message.poll != null) {
+        return add(
+          message.copyWith(poll: message.poll!.applySelection(answerIds)),
+        );
+      }
+    }
+    return this;
+  }
+
+  DiscordMessageState updatePollVote(
+    String messageId,
+    int answerId, {
+    required bool voted,
+    required bool isCurrentUser,
+  }) {
+    for (final message in messages) {
+      if (message.id == messageId && message.poll != null) {
+        return add(
+          message.copyWith(
+            poll: message.poll!.applyVoteEvent(
+              answerId,
+              voted: voted,
+              isCurrentUser: isCurrentUser,
+            ),
+          ),
+        );
+      }
+    }
+    return this;
   }
 
   DiscordMessageState add(DiscordMessage message) {

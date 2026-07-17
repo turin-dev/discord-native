@@ -3,7 +3,7 @@ type: glossary
 status: active
 tags: [glossary]
 source_paths: [plan.md, lib/]
-reviewed_at: 2026-07-16
+reviewed_at: 2026-07-17
 confidence: high
 aliases: [Glossary]
 ---
@@ -15,6 +15,7 @@ aliases: [Glossary]
 - DAVE: Discord Audio and Video End-to-End Encryption protocol.
 - RTP: Opus 음성 packet의 sequence, timestamp와 SSRC를 전달하는 media framing.
 - dispatch: Gateway opcode 0 이벤트.
+- private client API: Discord 공식 데스크톱 클라이언트가 사용하지만 공개 개발자 계약에는 없는 endpoint. 예고 없이 변경되거나 계정 사용이 제한될 수 있다.
 - workspace: guild, channel, 현재 사용자 선택 상태의 불변 집합.
 - M1: 로그인부터 서버·채널 표시까지의 첫 마일스톤.
 - M2: 텍스트 메시지 조회·전송의 핵심 마일스톤.

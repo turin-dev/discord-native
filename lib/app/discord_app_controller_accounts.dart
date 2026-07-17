@@ -3,6 +3,10 @@ part of 'discord_app_controller.dart';
 extension DiscordAppControllerAccounts on DiscordAppController {
   Future<void> switchAccount(String accountId) async {
     _ensureActive();
+    final pendingReadAck = _readAckWrite;
+    if (pendingReadAck != null) {
+      await pendingReadAck;
+    }
     final accountSession = _accountSession;
     if (accountSession == null) {
       throw StateError('다중 계정 저장소가 구성되지 않았습니다.');
@@ -37,12 +41,18 @@ extension DiscordAppControllerAccounts on DiscordAppController {
     if (pendingReadStateWrite != null) {
       await pendingReadStateWrite;
     }
+    final pendingReadAck = _readAckWrite;
+    if (pendingReadAck != null) {
+      await pendingReadAck;
+    }
     await _readStateRepository?.clear();
     _clearTypingState();
     _messageRepository = null;
     _threadRepository = null;
     _directMessageRepository = null;
     _relationshipRepository = null;
+    _clientSyncRepository = null;
+    _clientSyncDisabled = false;
     _update(const DiscordAppState(phase: DiscordAppPhase.signedOut));
   }
 
@@ -75,6 +85,10 @@ extension DiscordAppControllerAccounts on DiscordAppController {
     final pendingReadStateWrite = _readStateWrite;
     if (pendingReadStateWrite != null) {
       await pendingReadStateWrite;
+    }
+    final pendingReadAck = _readAckWrite;
+    if (pendingReadAck != null) {
+      await pendingReadAck;
     }
     await _readStateRepository?.dispose();
     await _messageCacheRepository?.dispose();

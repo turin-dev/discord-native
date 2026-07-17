@@ -373,6 +373,15 @@ final class DiscordGatewayClient
           'system_locale': 'ko-KR',
           'release_channel': 'stable',
         },
+        'client_state': {
+          'guild_versions': <String, Object?>{},
+          'highest_last_message_id': '0',
+          'read_state_version': 0,
+          'user_guild_settings_version': -1,
+          'user_settings_version': -1,
+          'private_channels_version': '0',
+          'api_code_version': 0,
+        },
         'compress': false,
       },
     });
