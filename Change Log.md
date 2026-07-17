@@ -18,7 +18,7 @@ aliases: [Change Log]
 - Discord Create Message poll payload 검증·전송, poll 응답 파싱·집계 card와 composer 생성 dialog 구현
 - Windows 입력·출력 오디오 장치 열거, 설정 저장과 `record`·SoLoud 초기화 장치 선택 구현
 - workspace 전체 surface를 ThemeExtension palette로 전환해 light/ash/dark/onyx 대비 일관성 보정
-- analyzer 0건, 336개 테스트와 80.62% line coverage 검증
+- analyzer 0건, 337개 테스트와 80.28% line coverage 검증
 - 전체 구현 소스를 독립된 공개 저장소 이력으로 복제하고 로컬 IDE·build·coverage artifact 제외
 - 빌드에 사용하지 않는 mbedTLS private-key test fixture와 upstream 개인 경로가 담긴 생성 파일 제거
 - gitleaks 기본 규칙과 검토된 vendored test vector allowlist를 추가하고 전체 Git 이력 0건 검증
