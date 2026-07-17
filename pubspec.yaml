@@ -56,7 +56,7 @@ dependencies:
   video_player_win: ^3.2.2
   cryptography: ^2.9.0
   ffi: ^2.2.0
-  record: 6.2.1
+  record: 7.1.1
   opus_dart: ^3.0.1
   flutter_soloud: 4.0.12
   auto_updater: ^1.0.0
