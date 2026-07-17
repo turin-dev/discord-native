@@ -1,0 +1,29 @@
+name: 기능 제안
+description: 새로운 기능이나 개선 사항을 제안해 주세요.
+title: "[Feature]: "
+labels: [enhancement, triage]
+body:
+  - type: checkboxes
+    attributes:
+      label: 사전 확인
+      options:
+        - label: 기존 issue와 Open Questions를 검색했습니다.
+          required: true
+  - type: textarea
+    id: problem
+    attributes:
+      label: 해결할 문제
+      description: 기능이 필요한 사용자 상황을 설명해 주세요.
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: 제안하는 동작
+    validations:
+      required: true
+  - type: textarea
+    id: api
+    attributes:
+      label: API와 약관 고려사항
+      description: 공개 Discord API로 구현 가능한지, 계정 위험이 있는지 적어 주세요.

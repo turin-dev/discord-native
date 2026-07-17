@@ -1,5 +1,8 @@
 name: discord_native
-description: "A new Flutter project."
+description: An unofficial native Windows Discord client built with Flutter.
+homepage: https://github.com/turin-dev/discord-native
+repository: https://github.com/turin-dev/discord-native
+issue_tracker: https://github.com/turin-dev/discord-native/issues
 # The following line prevents the package from being accidentally published to
 # pub.dev using `flutter pub publish`. This is preferred for private packages.
 publish_to: 'none' # Remove this line if you wish to publish to pub.dev
