@@ -1,6 +1,7 @@
 import 'package:discord_native/core/network/discord_rest_client.dart';
 import 'package:discord_native/features/messages/domain/discord_message_state.dart';
 import 'package:discord_native/features/messages/domain/discord_typing_state.dart';
+import 'package:discord_native/features/workspace/presentation/discord_design_tokens.dart';
 import 'package:flutter/material.dart';
 
 class MessageComposer extends StatelessWidget {
@@ -15,6 +16,7 @@ class MessageComposer extends StatelessWidget {
     required this.onRemoveAttachment,
     required this.onCancelReply,
     required this.onSend,
+    required this.channelName,
     this.onPickExpression,
     super.key,
   });
@@ -29,12 +31,13 @@ class MessageComposer extends StatelessWidget {
   final ValueChanged<DiscordUploadFile> onRemoveAttachment;
   final VoidCallback onCancelReply;
   final VoidCallback onSend;
+  final String channelName;
   final VoidCallback? onPickExpression;
 
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 8, 16, 20),
+      padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
@@ -54,7 +57,7 @@ class MessageComposer extends StatelessWidget {
             Container(
               padding: const EdgeInsets.fromLTRB(12, 6, 4, 6),
               decoration: const BoxDecoration(
-                color: Color(0xFF2B2D31),
+                color: DiscordColors.sidebar,
                 borderRadius: BorderRadius.vertical(top: Radius.circular(8)),
               ),
               child: Row(
@@ -62,7 +65,7 @@ class MessageComposer extends StatelessWidget {
                   Expanded(
                     child: Text(
                       '${target.authorName}에게 답장',
-                      style: const TextStyle(color: Color(0xFFB5BAC1)),
+                      style: const TextStyle(color: DiscordColors.textMuted),
                     ),
                   ),
                   IconButton(
@@ -78,7 +81,10 @@ class MessageComposer extends StatelessWidget {
               padding: const EdgeInsets.only(left: 12, bottom: 4),
               child: Text(
                 _typingLabel(typingUsers),
-                style: const TextStyle(color: Color(0xFFB5BAC1), fontSize: 12),
+                style: const TextStyle(
+                  color: DiscordColors.textMuted,
+                  fontSize: 12,
+                ),
               ),
             ),
           TextField(
@@ -96,34 +102,37 @@ class MessageComposer extends StatelessWidget {
             minLines: 1,
             maxLines: 5,
             decoration: InputDecoration(
-              hintText: enabled ? '메시지 보내기' : '채널 연결 대기 중',
+              hintText: enabled ? '#$channelName에 메시지 보내기' : '채널 연결 대기 중',
+              hintStyle: const TextStyle(color: DiscordColors.textFaint),
               filled: true,
-              fillColor: const Color(0xFF383A40),
+              fillColor: DiscordColors.input,
               border: OutlineInputBorder(
                 borderSide: BorderSide.none,
                 borderRadius: replyTarget == null
                     ? const BorderRadius.all(Radius.circular(8))
                     : const BorderRadius.vertical(bottom: Radius.circular(8)),
               ),
-              suffixIcon: IconButton(
-                onPressed: enabled ? onSend : null,
-                icon: const Icon(Icons.send),
-              ),
-              prefixIconConstraints: const BoxConstraints(minWidth: 96),
-              prefixIcon: Row(
+              suffixIconConstraints: const BoxConstraints(minWidth: 72),
+              suffixIcon: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   IconButton(
-                    tooltip: '파일 첨부',
-                    onPressed: enabled ? onPickAttachments : null,
-                    icon: const Icon(Icons.attach_file),
-                  ),
-                  IconButton(
                     tooltip: '이모지·스티커',
                     onPressed: enabled ? onPickExpression : null,
-                    icon: const Icon(Icons.emoji_emotions_outlined),
+                    icon: const Icon(Icons.emoji_emotions, size: 22),
+                  ),
+                  IconButton(
+                    tooltip: '메시지 보내기',
+                    onPressed: enabled ? onSend : null,
+                    icon: const Icon(Icons.send, size: 20),
                   ),
                 ],
+              ),
+              prefixIconConstraints: const BoxConstraints(minWidth: 48),
+              prefixIcon: IconButton(
+                tooltip: '파일 첨부',
+                onPressed: enabled ? onPickAttachments : null,
+                icon: const Icon(Icons.add_circle, size: 22),
               ),
             ),
           ),

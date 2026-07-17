@@ -1,0 +1,46 @@
+{
+  "color": {
+    "window": "#111214",
+    "guildRail": "#1E1F22",
+    "sidebar": "#2B2D31",
+    "footer": "#232428",
+    "chat": "#313338",
+    "input": "#383A40",
+    "hover": "#35373C",
+    "selected": "#404249",
+    "divider": "#1F2023",
+    "brand": "#5865F2",
+    "brandHover": "#4752C4",
+    "text": "#F2F3F5",
+    "textNormal": "#DBDEE1",
+    "textMuted": "#B5BAC1",
+    "textFaint": "#949BA4",
+    "link": "#00A8FC",
+    "positive": "#23A559",
+    "warning": "#F0B232",
+    "danger": "#F23F42"
+  },
+  "layout": {
+    "titleBarHeight": 32,
+    "guildRailWidth": 72,
+    "channelSidebarWidth": 240,
+    "channelHeaderHeight": 48,
+    "rightPanelWidth": 240,
+    "userPanelHeight": 52,
+    "guildIconSize": 48,
+    "channelTileHeight": 34
+  },
+  "radius": {
+    "small": 4,
+    "medium": 8,
+    "guildSelected": 16,
+    "guildIdle": 24
+  },
+  "typography": {
+    "family": "Segoe UI",
+    "body": 14,
+    "channel": 15,
+    "caption": 12,
+    "micro": 11
+  }
+}

@@ -8,6 +8,7 @@ import 'package:discord_native/features/workspace/presentation/message_composer.
 import 'package:discord_native/features/workspace/presentation/message_components.dart';
 import 'package:discord_native/features/workspace/presentation/message_pagination_control.dart';
 import 'package:discord_native/features/workspace/presentation/thread_controls.dart';
+import 'package:discord_native/features/workspace/presentation/discord_design_tokens.dart';
 import 'package:flutter/material.dart';
 
 export 'package:discord_native/features/workspace/presentation/message_pagination_control.dart'
@@ -246,6 +247,7 @@ class _ConversationPanelState extends State<ConversationPanel> {
             valueListenable: _replyTarget,
             builder: (context, replyTarget, _) => MessageComposer(
               controller: _composer,
+              channelName: widget.channel?.name ?? '메시지',
               enabled:
                   widget.channel != null &&
                   widget.canSendMessages &&
@@ -325,26 +327,48 @@ class _MessageList extends StatelessWidget {
       );
     }
     if (state.messages.isEmpty) {
+      final selectedChannel = channel!;
       return Center(
-        child: Text(
-          '# ${channel!.name}의 첫 메시지를 보내 보세요.',
-          style: const TextStyle(color: Color(0xFFB5BAC1)),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const CircleAvatar(
+              radius: 34,
+              backgroundColor: DiscordColors.input,
+              child: Icon(Icons.tag, size: 40, color: DiscordColors.text),
+            ),
+            const SizedBox(height: 16),
+            Text(
+              '#${selectedChannel.name}에 오신 것을 환영합니다!',
+              style: const TextStyle(
+                color: DiscordColors.text,
+                fontSize: 24,
+                fontWeight: FontWeight.w800,
+              ),
+            ),
+            const SizedBox(height: 6),
+            Text(
+              '#${selectedChannel.name} 채널의 시작이에요.',
+              style: const TextStyle(color: DiscordColors.textMuted),
+            ),
+          ],
         ),
       );
     }
     final showPagination = state.hasMore || state.isLoadingOlder;
     return ListView.builder(
-      padding: const EdgeInsets.symmetric(vertical: 16),
+      reverse: true,
+      padding: const EdgeInsets.symmetric(vertical: 12),
       itemCount: state.messages.length + (showPagination ? 1 : 0),
       itemBuilder: (context, index) {
-        if (showPagination && index == 0) {
+        if (showPagination && index == state.messages.length) {
           return OlderMessagesControl(
             isLoading: state.isLoadingOlder,
             errorMessage: state.olderErrorMessage,
             onLoad: onLoadOlderMessages,
           );
         }
-        final messageIndex = showPagination ? index - 1 : index;
+        final messageIndex = state.messages.length - 1 - index;
         final message = state.messages[messageIndex];
         final isOwnMessage = currentUserId == message.authorId;
         return MessageBubble(

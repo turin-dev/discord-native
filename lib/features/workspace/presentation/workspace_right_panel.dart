@@ -2,6 +2,8 @@ import 'package:discord_native/features/messages/domain/discord_message_search_s
 import 'package:discord_native/features/workspace/domain/discord_people_state.dart';
 import 'package:discord_native/features/workspace/domain/discord_workspace_state.dart';
 import 'package:discord_native/features/workspace/presentation/message_search_panel.dart';
+import 'package:discord_native/features/workspace/presentation/discord_design_tokens.dart';
+import 'package:discord_native/features/workspace/presentation/discord_identity.dart';
 import 'package:flutter/material.dart';
 
 typedef SendFriendRequestCallback = Future<void> Function(String username);
@@ -43,19 +45,34 @@ class WorkspaceRightPanel extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final directMessages = guild?.isDirectMessages == true;
+    final hasActiveSearch = searchState.query.trim().isNotEmpty;
     return DefaultTabController(
-      key: ValueKey('right-panel-${guild?.id}'),
+      key: ValueKey(
+        'right-panel-${guild?.id}-${hasActiveSearch ? 'search' : 'default'}',
+      ),
       length: 2,
+      initialIndex: directMessages || hasActiveSearch ? 0 : 1,
       child: ColoredBox(
-        color: const Color(0xFF2B2D31),
+        color: DiscordColors.sidebar,
         child: SizedBox(
-          width: 280,
+          width: DiscordLayout.rightPanelWidth,
           child: Column(
             children: [
-              TabBar(
-                tabs: directMessages
-                    ? const [Tab(text: '친구'), Tab(text: '요청')]
-                    : const [Tab(text: '검색'), Tab(text: '멤버')],
+              SizedBox(
+                height: DiscordLayout.channelHeaderHeight,
+                child: TabBar(
+                  indicatorSize: TabBarIndicatorSize.tab,
+                  dividerColor: DiscordColors.divider,
+                  tabs: directMessages
+                      ? const [
+                          Tab(icon: Icon(Icons.people_alt), text: '친구'),
+                          Tab(icon: Icon(Icons.person_add), text: '요청'),
+                        ]
+                      : const [
+                          Tab(icon: Icon(Icons.search), text: '검색'),
+                          Tab(icon: Icon(Icons.group), text: '멤버'),
+                        ],
+                ),
               ),
               if (errorMessage case final message?)
                 Padding(
@@ -126,9 +143,23 @@ class _GuildMembersPanel extends StatelessWidget {
         final member = members[index];
         return ListTile(
           dense: true,
-          leading: _PresenceAvatar(status: member.status),
-          title: Text(member.displayName),
-          subtitle: Text(_presenceLine(member.status, member.activityName)),
+          leading: _PresenceAvatar(user: member.user, status: member.status),
+          title: Text(
+            member.displayName,
+            style: const TextStyle(
+              color: DiscordColors.textMuted,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+          subtitle: Text(
+            _presenceLine(member.status, member.activityName),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: const TextStyle(
+              color: DiscordColors.textFaint,
+              fontSize: 11,
+            ),
+          ),
           onTap: () => _showProfile(
             context,
             user: member.user,
@@ -261,7 +292,10 @@ class _RelationshipTile extends StatelessWidget {
   Widget build(BuildContext context) {
     return ListTile(
       dense: true,
-      leading: _PresenceAvatar(status: relationship.status),
+      leading: _PresenceAvatar(
+        user: relationship.user,
+        status: relationship.status,
+      ),
       title: Text(relationship.displayName),
       subtitle: Text(
         _presenceLine(relationship.status, relationship.activityName),
@@ -391,33 +425,17 @@ class _RelationshipTile extends StatelessWidget {
 enum _RelationshipAction { block, remove }
 
 class _PresenceAvatar extends StatelessWidget {
-  const _PresenceAvatar({required this.status});
+  const _PresenceAvatar({required this.user, required this.status});
 
+  final DiscordUser user;
   final DiscordPresenceStatus status;
 
   @override
   Widget build(BuildContext context) {
-    return Stack(
-      clipBehavior: Clip.none,
-      children: [
-        const CircleAvatar(
-          radius: 18,
-          backgroundColor: Color(0xFF5865F2),
-          child: Icon(Icons.person, color: Colors.white, size: 20),
-        ),
-        Positioned(
-          right: -1,
-          bottom: -1,
-          child: DecoratedBox(
-            decoration: BoxDecoration(
-              color: _statusColor(status),
-              shape: BoxShape.circle,
-              border: Border.all(color: const Color(0xFF2B2D31), width: 2),
-            ),
-            child: const SizedBox.square(dimension: 12),
-          ),
-        ),
-      ],
+    return DiscordUserAvatar(
+      user: user,
+      radius: 16,
+      statusColor: _statusColor(status),
     );
   }
 }
@@ -458,7 +476,7 @@ Future<void> _showProfile(
       content: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          _PresenceAvatar(status: status),
+          _PresenceAvatar(user: user, status: status),
           const SizedBox(height: 12),
           Text(
             displayName,

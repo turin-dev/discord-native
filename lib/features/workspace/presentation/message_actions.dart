@@ -1,4 +1,5 @@
 import 'package:discord_native/features/messages/domain/discord_message_state.dart';
+import 'package:discord_native/features/workspace/presentation/discord_design_tokens.dart';
 import 'package:flutter/material.dart';
 
 typedef EditMessageCallback =
@@ -25,21 +26,38 @@ class MessageActionsMenu extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return PopupMenuButton<MessageAction>(
-      tooltip: '메시지 작업',
-      onSelected: onSelected,
-      itemBuilder: (context) => [
+    return MenuAnchor(
+      style: const MenuStyle(
+        backgroundColor: WidgetStatePropertyAll(DiscordColors.sidebar),
+      ),
+      menuChildren: [
         if (canEdit)
-          const PopupMenuItem(value: MessageAction.edit, child: Text('편집')),
+          MenuItemButton(
+            onPressed: () => onSelected(MessageAction.edit),
+            child: const Text('편집'),
+          ),
         if (canTogglePin)
-          PopupMenuItem(
-            value: MessageAction.togglePin,
+          MenuItemButton(
+            onPressed: () => onSelected(MessageAction.togglePin),
             child: Text(pinned ? '고정 해제' : '고정'),
           ),
         if (canDelete)
-          const PopupMenuItem(value: MessageAction.delete, child: Text('삭제')),
+          MenuItemButton(
+            onPressed: () => onSelected(MessageAction.delete),
+            child: const Text('삭제'),
+          ),
       ],
-      icon: const Icon(Icons.more_horiz, size: 18, color: Color(0xFFB5BAC1)),
+      builder: (context, controller, _) => IconButton(
+        constraints: const BoxConstraints.tightFor(width: 32, height: 32),
+        padding: EdgeInsets.zero,
+        tooltip: '메시지 작업',
+        onPressed: controller.isOpen ? controller.close : controller.open,
+        icon: const Icon(
+          Icons.more_horiz,
+          size: 18,
+          color: DiscordColors.textMuted,
+        ),
+      ),
     );
   }
 }

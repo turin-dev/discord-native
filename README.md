@@ -54,9 +54,13 @@ flutter build windows --release --split-debug-info=build/symbols/windows
 .\tool\benchmark_windows.ps1 -Enforce
 ```
 
-기준선은 analyzer 0건, 320개 테스트, line coverage 80.48%입니다. 검증된 release 측정값은 시작 0.200초, working set 99.60MB, idle CPU 0%, 설치 디렉터리 59.05MB입니다. Visual Studio file tracker 문제가 발생하면 `.\tool\build_windows.ps1 --debug` wrapper를 사용할 수 있습니다.
+기준선은 analyzer 0건, 321개 테스트, line coverage 80.62%입니다. 검증된 release 측정값은 시작 0.200초, working set 99.60MB, idle CPU 0%, 설치 디렉터리 59.05MB입니다. Visual Studio file tracker 문제가 발생하면 `.\tool\build_windows.ps1 --debug` wrapper를 사용할 수 있습니다.
 
 Installer와 서명 업데이트 절차는 [Windows Release runbook](07%20Runbooks/Windows%20Release.md)에 있습니다. 실제 tag release 전에는 운영 HTTPS feed와 별도 생성한 WinSparkle DSA key pair를 설정해야 합니다.
+
+## UI 계약
+
+데스크톱 shell은 Discord의 32px title bar, 72px guild rail, 240px channel sidebar, 48px channel header와 240px member panel 구조를 따릅니다. 세부 원칙과 치수는 [DESIGN.md](DESIGN.md), 교환 가능한 token은 [design-tokens.json](design-tokens.json), 정적 reference는 [design-preview.html](design-preview.html)에서 확인할 수 있습니다.
 
 ## 구조
 

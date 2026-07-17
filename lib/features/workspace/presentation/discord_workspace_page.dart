@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:discord_native/features/workspace/domain/discord_workspace_state.dart';
 import 'package:collection/collection.dart';
 import 'package:discord_native/features/messages/domain/discord_message_state.dart';
@@ -17,6 +19,8 @@ import 'package:discord_native/features/workspace/presentation/guild_invite_cont
 import 'package:discord_native/features/workspace/presentation/forum_channel_panel.dart';
 import 'package:discord_native/features/workspace/presentation/workspace_navigation.dart';
 import 'package:discord_native/features/workspace/presentation/workspace_right_panel.dart';
+import 'package:discord_native/features/workspace/presentation/discord_design_tokens.dart';
+import 'package:discord_native/features/workspace/presentation/discord_title_bar.dart';
 import 'package:discord_native/features/voice/domain/discord_voice_ui_state.dart';
 import 'package:discord_native/features/voice/domain/discord_voice_media_state.dart';
 import 'package:flutter/material.dart';
@@ -244,120 +248,134 @@ class DiscordWorkspacePage extends StatelessWidget {
             participant.userId,
     };
     return Scaffold(
-      backgroundColor: const Color(0xFF313338),
-      body: SafeArea(
-        child: Row(
-          children: [
-            GuildRail(
-              guilds: state.guilds,
-              selectedGuildId: guild?.id,
-              onSelect: onSelectGuild,
+      backgroundColor: DiscordColors.chat,
+      body: Column(
+        children: [
+          DiscordTitleBar(
+            onSearch: onSearchMessages == null
+                ? null
+                : (query) {
+                    if (query.trim().isNotEmpty) {
+                      unawaited(onSearchMessages!(query, false));
+                    }
+                  },
+          ),
+          Expanded(
+            child: Row(
+              children: [
+                GuildRail(
+                  guilds: state.guilds,
+                  selectedGuildId: guild?.id,
+                  onSelect: onSelectGuild,
+                ),
+                ChannelSidebar(
+                  guild: guild,
+                  channels: channels,
+                  selectedChannelId: channel?.id,
+                  currentUser: state.currentUser,
+                  connectionLabel: connectionLabel,
+                  readStates: readStates,
+                  onSelect: onSelectChannel,
+                  onLogout: onLogout,
+                  onOpenUserSettings: onOpenUserSettings,
+                  voiceUiState: voiceUiState,
+                  voiceParticipantNames: voiceParticipantNames,
+                  onJoinVoiceChannel: onJoinVoiceChannel,
+                  onSetVoiceMuted: onSetVoiceMuted,
+                  onSetVoiceDeafened: onSetVoiceDeafened,
+                  onLeaveVoiceChannel: onLeaveVoiceChannel,
+                  onSetVoiceInputMode: onSetVoiceInputMode,
+                  onPushToTalkPressed: onPushToTalkPressed,
+                  onSetVoiceUserVolume: onSetVoiceUserVolume,
+                  onSetCameraEnabled: onSetCameraEnabled,
+                  onSetScreenShareEnabled: onSetScreenShareEnabled,
+                  onSetScreenSharePaused: onSetScreenSharePaused,
+                  onWatchVoiceStream: onWatchVoiceStream,
+                  onStopWatchingVoiceStream: onStopWatchingVoiceStream,
+                  localVideoStream: localVideoStream,
+                  localScreenStream: localScreenStream,
+                  canCreateChannel: canCreateChannel,
+                  manageableChannelIds: manageableChannelIds,
+                  guildErrorMessage: guildErrorMessage,
+                  onCreateGuildChannel: onCreateGuildChannel,
+                  onUpdateGuildChannel: onUpdateGuildChannel,
+                  onDeleteGuildChannel: onDeleteGuildChannel,
+                  canManageRoles: canManageRoles,
+                  onCreateGuildRole: onCreateGuildRole,
+                  onUpdateGuildRole: onUpdateGuildRole,
+                  onUpdateGuildRolePositions: onUpdateGuildRolePositions,
+                  onDeleteGuildRole: onDeleteGuildRole,
+                  canManageInvites: canManageInvites,
+                  onLoadGuildInvites: onLoadGuildInvites,
+                  onCreateGuildInvite: onCreateGuildInvite,
+                  onDeleteGuildInvite: onDeleteGuildInvite,
+                  canManageEvents: canManageEvents,
+                  onLoadScheduledEvents: onLoadScheduledEvents,
+                  onCreateScheduledEvent: onCreateScheduledEvent,
+                  onUpdateScheduledEvent: onUpdateScheduledEvent,
+                  onDeleteScheduledEvent: onDeleteScheduledEvent,
+                ),
+                Expanded(
+                  child: channel?.isForum == true || channel?.isMedia == true
+                      ? ForumChannelPanel(
+                          channel: channel!,
+                          posts: forumPosts,
+                          onSelectPost: onSelectChannel,
+                          onRefresh: onRefreshThreads == null
+                              ? null
+                              : () => onRefreshThreads!(channel.id),
+                          onCreatePost:
+                              canSendMessages && onCreateForumPost != null
+                              ? onCreateForumPost
+                              : null,
+                        )
+                      : ConversationPanel(
+                          guild: guild,
+                          channel: channel,
+                          messageState: messageState,
+                          typingUsers: typingUsers,
+                          onTyping: onTyping,
+                          currentUserId: state.currentUser?.id,
+                          canSendMessages: canSendMessages,
+                          canManageMessages: canManageMessages,
+                          canPinMessages: canPinMessages,
+                          onSendMessage: onSendMessage,
+                          onSendSticker: onSendSticker,
+                          onLoadOlderMessages: onLoadOlderMessages,
+                          onSendReply: onSendReply,
+                          onToggleReaction: onToggleReaction,
+                          onEditMessage: onEditMessage,
+                          onDeleteMessage: onDeleteMessage,
+                          onTogglePinned: onTogglePinned,
+                          onPickAttachments: onPickAttachments,
+                          onDownloadAttachment: onDownloadAttachment,
+                          onSendAttachments: onSendAttachments,
+                          onRefreshThreads: onRefreshThreads,
+                          onCreateThread: onCreateThread,
+                          onStartThreadFromMessage: onStartThreadFromMessage,
+                          onJoinThread: onJoinThread,
+                          onSetThreadArchived: onSetThreadArchived,
+                        ),
+                ),
+                WorkspaceRightPanel(
+                  guild: guild,
+                  peopleState: peopleState,
+                  searchState: searchState,
+                  channels: state.channels,
+                  onSearch: onSearchMessages,
+                  onSelectResult: onSelectSearchResult,
+                  onClear: onClearSearch,
+                  onOpenDirectMessage: onOpenDirectMessage,
+                  errorMessage: peopleErrorMessage,
+                  onSendFriendRequest: onSendFriendRequest,
+                  onAcceptFriendRequest: onAcceptFriendRequest,
+                  onBlockRelationship: onBlockRelationship,
+                  onRemoveRelationship: onRemoveRelationship,
+                ),
+              ],
             ),
-            ChannelSidebar(
-              guild: guild,
-              channels: channels,
-              selectedChannelId: channel?.id,
-              currentUser: state.currentUser,
-              connectionLabel: connectionLabel,
-              readStates: readStates,
-              onSelect: onSelectChannel,
-              onLogout: onLogout,
-              onOpenUserSettings: onOpenUserSettings,
-              voiceUiState: voiceUiState,
-              voiceParticipantNames: voiceParticipantNames,
-              onJoinVoiceChannel: onJoinVoiceChannel,
-              onSetVoiceMuted: onSetVoiceMuted,
-              onSetVoiceDeafened: onSetVoiceDeafened,
-              onLeaveVoiceChannel: onLeaveVoiceChannel,
-              onSetVoiceInputMode: onSetVoiceInputMode,
-              onPushToTalkPressed: onPushToTalkPressed,
-              onSetVoiceUserVolume: onSetVoiceUserVolume,
-              onSetCameraEnabled: onSetCameraEnabled,
-              onSetScreenShareEnabled: onSetScreenShareEnabled,
-              onSetScreenSharePaused: onSetScreenSharePaused,
-              onWatchVoiceStream: onWatchVoiceStream,
-              onStopWatchingVoiceStream: onStopWatchingVoiceStream,
-              localVideoStream: localVideoStream,
-              localScreenStream: localScreenStream,
-              canCreateChannel: canCreateChannel,
-              manageableChannelIds: manageableChannelIds,
-              guildErrorMessage: guildErrorMessage,
-              onCreateGuildChannel: onCreateGuildChannel,
-              onUpdateGuildChannel: onUpdateGuildChannel,
-              onDeleteGuildChannel: onDeleteGuildChannel,
-              canManageRoles: canManageRoles,
-              onCreateGuildRole: onCreateGuildRole,
-              onUpdateGuildRole: onUpdateGuildRole,
-              onUpdateGuildRolePositions: onUpdateGuildRolePositions,
-              onDeleteGuildRole: onDeleteGuildRole,
-              canManageInvites: canManageInvites,
-              onLoadGuildInvites: onLoadGuildInvites,
-              onCreateGuildInvite: onCreateGuildInvite,
-              onDeleteGuildInvite: onDeleteGuildInvite,
-              canManageEvents: canManageEvents,
-              onLoadScheduledEvents: onLoadScheduledEvents,
-              onCreateScheduledEvent: onCreateScheduledEvent,
-              onUpdateScheduledEvent: onUpdateScheduledEvent,
-              onDeleteScheduledEvent: onDeleteScheduledEvent,
-            ),
-            Expanded(
-              child: channel?.isForum == true || channel?.isMedia == true
-                  ? ForumChannelPanel(
-                      channel: channel!,
-                      posts: forumPosts,
-                      onSelectPost: onSelectChannel,
-                      onRefresh: onRefreshThreads == null
-                          ? null
-                          : () => onRefreshThreads!(channel.id),
-                      onCreatePost: canSendMessages && onCreateForumPost != null
-                          ? onCreateForumPost
-                          : null,
-                    )
-                  : ConversationPanel(
-                      guild: guild,
-                      channel: channel,
-                      messageState: messageState,
-                      typingUsers: typingUsers,
-                      onTyping: onTyping,
-                      currentUserId: state.currentUser?.id,
-                      canSendMessages: canSendMessages,
-                      canManageMessages: canManageMessages,
-                      canPinMessages: canPinMessages,
-                      onSendMessage: onSendMessage,
-                      onSendSticker: onSendSticker,
-                      onLoadOlderMessages: onLoadOlderMessages,
-                      onSendReply: onSendReply,
-                      onToggleReaction: onToggleReaction,
-                      onEditMessage: onEditMessage,
-                      onDeleteMessage: onDeleteMessage,
-                      onTogglePinned: onTogglePinned,
-                      onPickAttachments: onPickAttachments,
-                      onDownloadAttachment: onDownloadAttachment,
-                      onSendAttachments: onSendAttachments,
-                      onRefreshThreads: onRefreshThreads,
-                      onCreateThread: onCreateThread,
-                      onStartThreadFromMessage: onStartThreadFromMessage,
-                      onJoinThread: onJoinThread,
-                      onSetThreadArchived: onSetThreadArchived,
-                    ),
-            ),
-            WorkspaceRightPanel(
-              guild: guild,
-              peopleState: peopleState,
-              searchState: searchState,
-              channels: state.channels,
-              onSearch: onSearchMessages,
-              onSelectResult: onSelectSearchResult,
-              onClear: onClearSearch,
-              onOpenDirectMessage: onOpenDirectMessage,
-              errorMessage: peopleErrorMessage,
-              onSendFriendRequest: onSendFriendRequest,
-              onAcceptFriendRequest: onAcceptFriendRequest,
-              onBlockRelationship: onBlockRelationship,
-              onRemoveRelationship: onRemoveRelationship,
-            ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }

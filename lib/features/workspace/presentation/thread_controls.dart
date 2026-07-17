@@ -1,4 +1,5 @@
 import 'package:discord_native/features/workspace/domain/discord_workspace_state.dart';
+import 'package:discord_native/features/workspace/presentation/discord_design_tokens.dart';
 import 'package:flutter/material.dart';
 
 typedef RefreshThreadsCallback = Future<void> Function(String parentChannelId);
@@ -30,59 +31,80 @@ class ThreadConversationHeader extends StatelessWidget {
   Widget build(BuildContext context) {
     final selected = channel;
     return Container(
-      height: 52,
+      height: DiscordLayout.channelHeaderHeight,
       padding: const EdgeInsets.symmetric(horizontal: 16),
       decoration: const BoxDecoration(
-        border: Border(bottom: BorderSide(color: Color(0xFF26272B))),
+        color: DiscordColors.chat,
+        border: Border(bottom: BorderSide(color: DiscordColors.divider)),
       ),
       child: Row(
         children: [
-          Expanded(
-            child: Text(
-              selected == null
-                  ? '채널을 선택해 주세요'
-                  : '${selected.isThread ? '›' : '#'} ${selected.name}',
-              style: const TextStyle(
-                color: Colors.white,
-                fontSize: 16,
-                fontWeight: FontWeight.w600,
+          Icon(
+            selected?.isThread == true ? Icons.forum_outlined : Icons.tag,
+            size: 22,
+            color: DiscordColors.textFaint,
+          ),
+          const SizedBox(width: 8),
+          Text(
+            selected?.name ?? '채널을 선택해 주세요',
+            style: DiscordTextStyles.heading,
+          ),
+          if (selected?.topic case final topic? when topic.isNotEmpty) ...[
+            const Padding(
+              padding: EdgeInsets.symmetric(horizontal: 12),
+              child: SizedBox(
+                width: 1,
+                height: 22,
+                child: ColoredBox(color: DiscordColors.divider),
               ),
             ),
-          ),
+            Expanded(
+              child: Text(
+                topic,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(
+                  color: DiscordColors.textMuted,
+                  fontSize: 13,
+                ),
+              ),
+            ),
+          ] else
+            const Spacer(),
           if (selected?.canCreatePublicThread == true) ...[
-            IconButton(
+            _HeaderAction(
               tooltip: '스레드 새로고침',
               onPressed: onRefreshThreads == null
                   ? null
                   : () => onRefreshThreads!(selected!.id),
-              icon: const Icon(Icons.refresh),
+              icon: Icons.refresh,
             ),
-            IconButton(
+            _HeaderAction(
               tooltip: '스레드 만들기',
               onPressed: onCreateThread == null
                   ? null
                   : () => _createThread(context, selected!),
-              icon: const Icon(Icons.add_comment_outlined),
+              icon: Icons.add_comment_outlined,
             ),
           ],
           if (selected?.isThread == true) ...[
             if (!selected!.joined && !selected.isArchived)
-              IconButton(
+              _HeaderAction(
                 tooltip: '스레드 참여',
                 onPressed: onJoinThread == null
                     ? null
                     : () => onJoinThread!(selected.id),
-                icon: const Icon(Icons.login),
+                icon: Icons.login,
               ),
-            IconButton(
+            _HeaderAction(
               tooltip: selected.isArchived ? '스레드 다시 열기' : '스레드 보관',
               onPressed: onSetThreadArchived == null
                   ? null
                   : () =>
                         onSetThreadArchived!(selected.id, !selected.isArchived),
-              icon: Icon(
-                selected.isArchived ? Icons.unarchive : Icons.archive_outlined,
-              ),
+              icon: selected.isArchived
+                  ? Icons.unarchive
+                  : Icons.archive_outlined,
             ),
           ],
         ],
@@ -98,6 +120,29 @@ class ThreadConversationHeader extends StatelessWidget {
     if (name != null) {
       await onCreateThread!(selected.id, name);
     }
+  }
+}
+
+class _HeaderAction extends StatelessWidget {
+  const _HeaderAction({
+    required this.tooltip,
+    required this.onPressed,
+    required this.icon,
+  });
+
+  final String tooltip;
+  final VoidCallback? onPressed;
+  final IconData icon;
+
+  @override
+  Widget build(BuildContext context) {
+    return IconButton(
+      constraints: const BoxConstraints.tightFor(width: 36, height: 36),
+      padding: EdgeInsets.zero,
+      tooltip: tooltip,
+      onPressed: onPressed,
+      icon: Icon(icon, size: 20, color: DiscordColors.textMuted),
+    );
   }
 }
 

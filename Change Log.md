@@ -57,6 +57,14 @@ aliases: [Change Log]
 - analyzer·320개 테스트·80.48% line coverage·Release build·benchmark·portable artifact를 검증하는 Windows CI 구현
 - per-user Inno Setup installer, SHA-256, WinSparkle DSA 서명과 HTTPS appcast 생성 파이프라인 구현
 - 19.93MB Windows installer와 서명 appcast end-to-end 검증
+- Discord 데스크톱과 같은 32/72/240/48/240 workspace shell과 중앙 전역 검색 구현
+- CDN guild icon·user avatar와 deterministic fallback identity component 구현
+- 34px channel row, unread·selected 상태, 52px user control panel과 실제 mute·deafen action 구현
+- message 최신 항목 하단 정렬, hover action toolbar와 안정적인 anchored action menu 구현
+- 검색 활성화 시 right panel 자동 전환, 기본 guild member panel과 DM friend panel 동작 정리
+- Discord형 composer·channel header·login card와 공통 design token 계약 구현
+- UI 계약 문서, JSON token과 자체 포함 HTML preview 추가
+- analyzer·321개 테스트·80.62% line coverage 검증
 
 ## 2026-07-16
 

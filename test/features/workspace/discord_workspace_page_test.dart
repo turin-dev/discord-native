@@ -1,3 +1,5 @@
+import 'dart:ui';
+
 import 'package:discord_native/features/workspace/domain/discord_workspace_state.dart';
 import 'package:discord_native/features/workspace/domain/discord_people_state.dart';
 import 'package:discord_native/features/workspace/domain/discord_permissions.dart';
@@ -8,6 +10,9 @@ import 'package:discord_native/features/workspace/data/discord_invite_repository
 import 'package:discord_native/features/workspace/data/discord_scheduled_event_repository.dart';
 import 'package:discord_native/features/workspace/domain/discord_scheduled_event.dart';
 import 'package:discord_native/features/workspace/presentation/discord_workspace_page.dart';
+import 'package:discord_native/features/workspace/presentation/thread_controls.dart';
+import 'package:discord_native/features/workspace/presentation/workspace_navigation.dart';
+import 'package:discord_native/features/workspace/presentation/workspace_right_panel.dart';
 import 'package:discord_native/features/messages/domain/discord_message_search_state.dart';
 import 'package:discord_native/features/messages/domain/discord_message_state.dart';
 import 'package:discord_native/features/messages/domain/discord_typing_state.dart';
@@ -15,7 +20,81 @@ import 'package:discord_native/core/network/discord_rest_client.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+TestGesture? activeMouseGesture;
+
+Future<void> hoverMessage(WidgetTester tester, String content) async {
+  await activeMouseGesture?.removePointer();
+  activeMouseGesture = null;
+  final message = find.text(content);
+  await tester.ensureVisible(message);
+  final gesture = await tester.createGesture(kind: PointerDeviceKind.mouse);
+  activeMouseGesture = gesture;
+  addTearDown(() async {
+    if (identical(activeMouseGesture, gesture)) {
+      await gesture.removePointer();
+      activeMouseGesture = null;
+    }
+  });
+  await gesture.addPointer(location: tester.getCenter(message));
+  await tester.pump();
+}
+
+Future<void> tapPopupItem(WidgetTester tester, String label) async {
+  final item = find.ancestor(
+    of: find.text(label),
+    matching: find.byWidgetPredicate(
+      (widget) => widget is PopupMenuItem || widget is MenuItemButton,
+    ),
+  );
+  expect(item, findsOneWidget);
+  await tester.tap(item);
+}
+
 void main() {
+  testWidgets('Discord desktop와 같은 shell 밀도와 title bar를 사용한다', (tester) async {
+    await tester.binding.setSurfaceSize(const Size(1440, 900));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+
+    final state = DiscordWorkspaceState.fromCollections(
+      guilds: const [
+        DiscordGuild(id: 'guild-1', name: '개발 서버'),
+        DiscordGuild(id: 'guild-2', name: '게임 서버'),
+      ],
+      channels: const [
+        DiscordChannel(
+          id: 'channel-1',
+          guildId: 'guild-1',
+          name: 'general',
+          type: 0,
+          position: 0,
+          topic: '팀이 모이는 공간',
+        ),
+      ],
+      currentUser: const DiscordUser(id: 'user-1', username: 'native-user'),
+    );
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: DiscordWorkspacePage(
+          state: state,
+          selectedGuildId: 'guild-1',
+          selectedChannelId: 'channel-1',
+          connectionLabel: '연결됨',
+          onSelectGuild: (_) {},
+          onSelectChannel: (_) {},
+          onLogout: () {},
+        ),
+      ),
+    );
+
+    expect(find.byKey(const ValueKey('discord-title-bar')), findsOneWidget);
+    expect(tester.getSize(find.byType(GuildRail)).width, 72);
+    expect(tester.getSize(find.byType(ChannelSidebar)).width, 240);
+    expect(tester.getSize(find.byType(ThreadConversationHeader)).height, 48);
+    expect(tester.getSize(find.byType(WorkspaceRightPanel)).width, 240);
+    expect(find.text('팀이 모이는 공간'), findsOneWidget);
+  });
+
   testWidgets('guild rail과 선택한 guild의 채널을 표시한다', (tester) async {
     await tester.binding.setSurfaceSize(const Size(1280, 720));
     addTearDown(() => tester.binding.setSurfaceSize(null));
@@ -51,8 +130,8 @@ void main() {
       ),
     );
 
-    expect(find.text('개발 서버'), findsOneWidget);
-    expect(find.text('게임 서버'), findsOneWidget);
+    expect(find.byKey(const ValueKey('guild-rail-guild-1')), findsOneWidget);
+    expect(find.byKey(const ValueKey('guild-rail-guild-2')), findsOneWidget);
     expect(find.text('general'), findsWidgets);
     expect(find.text('native-user'), findsOneWidget);
     expect(find.text('연결됨'), findsOneWidget);
@@ -94,7 +173,7 @@ void main() {
       ),
     );
 
-    await tester.tap(find.text('게임 서버'));
+    await tester.tap(find.byKey(const ValueKey('guild-rail-guild-2')));
     await tester.tap(find.text('general').first);
 
     expect(selectedGuildId, 'guild-2');
@@ -307,6 +386,7 @@ void main() {
     await tester.pump(const Duration(seconds: 5));
     await tester.pumpAndSettle();
     await tester.tap(find.text('👍 2'));
+    await hoverMessage(tester, '답장');
     await tester.tap(find.byTooltip('답장'));
     await tester.enterText(
       find.byKey(const ValueKey('message-composer-field')),
@@ -393,7 +473,10 @@ void main() {
       findsOneWidget,
     );
 
-    await tester.tap(find.byKey(const ValueKey('spoiler-hidden')));
+    final spoiler = find.byKey(const ValueKey('spoiler-hidden'));
+    await Scrollable.ensureVisible(tester.element(spoiler), alignment: 0.5);
+    await tester.pump(const Duration(milliseconds: 20));
+    await tester.tap(spoiler);
     await tester.pump();
 
     expect(find.byKey(const ValueKey('spoiler-revealed')), findsOneWidget);
@@ -458,6 +541,7 @@ void main() {
       ),
     );
 
+    await hoverMessage(tester, '원문');
     await tester.tap(find.byTooltip('답장'));
     await tester.tap(find.byTooltip('파일 첨부'));
     await tester.pump();
@@ -565,6 +649,7 @@ void main() {
     );
     await tester.tap(find.text('만들기'));
     await tester.pumpAndSettle();
+    await hoverMessage(tester, '원문');
     await tester.tap(find.byTooltip('스레드 시작'));
     await tester.pumpAndSettle();
     await tester.enterText(
@@ -726,9 +811,10 @@ void main() {
       ),
     );
 
+    await hoverMessage(tester, '원본 메시지');
     await tester.tap(find.byTooltip('메시지 작업'));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('편집'));
+    await tapPopupItem(tester, '편집');
     await tester.pumpAndSettle();
     await tester.enterText(
       find.byKey(const ValueKey('message-edit-field')),
@@ -737,14 +823,16 @@ void main() {
     await tester.tap(find.text('저장'));
     await tester.pumpAndSettle();
 
+    await hoverMessage(tester, '원본 메시지');
     await tester.tap(find.byTooltip('메시지 작업'));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('고정'));
+    await tapPopupItem(tester, '고정');
     await tester.pumpAndSettle();
 
+    await hoverMessage(tester, '원본 메시지');
     await tester.tap(find.byTooltip('메시지 작업'));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('삭제'));
+    await tapPopupItem(tester, '삭제');
     await tester.pumpAndSettle();
     await tester.tap(find.text('삭제').last);
     await tester.pumpAndSettle();
@@ -1007,9 +1095,9 @@ void main() {
     );
 
     expect(find.text('다이렉트 메시지'), findsWidgets);
-    expect(find.text('bob'), findsOneWidget);
+    expect(find.text('bob'), findsWidgets);
     expect(find.text('밥'), findsOneWidget);
-    await tester.tap(find.byTooltip('메시지 보내기'));
+    await tester.tap(find.byTooltip('메시지 보내기').last);
     await tester.pumpAndSettle();
     await tester.tap(find.byTooltip('친구 추가'));
     await tester.pumpAndSettle();
@@ -1191,13 +1279,14 @@ void main() {
       ),
     );
 
-    expect(find.text('공개 채널'), findsOneWidget);
+    expect(find.text('공개 채널'), findsWidgets);
     expect(find.text('비공개 채널'), findsNothing);
     final composer = tester.widget<TextField>(
       find.byKey(const ValueKey('message-composer-field')),
     );
     expect(composer.enabled, isFalse);
 
+    await hoverMessage(tester, '운영 대상 메시지');
     await tester.tap(find.byTooltip('메시지 작업'));
     await tester.pumpAndSettle();
     expect(find.text('편집'), findsNothing);
@@ -1297,7 +1386,7 @@ void main() {
 
     await tester.tap(find.byTooltip('general 채널 설정'));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('채널 편집'));
+    await tapPopupItem(tester, '채널 편집');
     await tester.pumpAndSettle();
     await tester.enterText(
       find.byKey(const ValueKey('channel-name-field')),
@@ -1311,7 +1400,7 @@ void main() {
 
     await tester.tap(find.byTooltip('general 채널 설정'));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('채널 삭제'));
+    await tapPopupItem(tester, '채널 삭제');
     await tester.pumpAndSettle();
     await tester.tap(find.text('삭제').last);
     await tester.pumpAndSettle();

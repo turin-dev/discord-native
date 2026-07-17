@@ -8,6 +8,8 @@ import 'package:discord_native/features/workspace/presentation/guild_invite_cont
 import 'package:discord_native/features/voice/domain/discord_voice_ui_state.dart';
 import 'package:discord_native/features/voice/domain/discord_voice_media_state.dart';
 import 'package:discord_native/features/workspace/presentation/workspace_voice_controls.dart';
+import 'package:discord_native/features/workspace/presentation/discord_design_tokens.dart';
+import 'package:discord_native/features/workspace/presentation/discord_identity.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_webrtc/flutter_webrtc.dart';
 
@@ -26,42 +28,93 @@ class GuildRail extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return ColoredBox(
-      color: const Color(0xFF1E1F22),
+      color: DiscordColors.guildRail,
       child: SizedBox(
-        width: 96,
+        width: DiscordLayout.guildRailWidth,
         child: ListView.builder(
-          padding: const EdgeInsets.symmetric(vertical: 12),
+          padding: const EdgeInsets.symmetric(vertical: 8),
           itemCount: guilds.length,
           itemBuilder: (context, index) {
             final guild = guilds[index];
             final selected = guild.id == selectedGuildId;
-            return Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-              child: InkWell(
-                borderRadius: BorderRadius.circular(16),
-                onTap: () => onSelect(guild.id),
-                child: AnimatedContainer(
-                  duration: const Duration(milliseconds: 150),
-                  padding: const EdgeInsets.all(8),
-                  decoration: BoxDecoration(
-                    color: selected
-                        ? const Color(0xFF5865F2)
-                        : const Color(0xFF313338),
-                    borderRadius: BorderRadius.circular(selected ? 16 : 24),
-                  ),
-                  child: Text(
-                    selected ? '✓' : guild.name,
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                    textAlign: TextAlign.center,
-                    style: const TextStyle(color: Colors.white, fontSize: 11),
-                  ),
-                ),
-              ),
+            return _GuildRailItem(
+              guild: guild,
+              selected: selected,
+              onTap: () => onSelect(guild.id),
             );
           },
         ),
       ),
+    );
+  }
+}
+
+class _GuildRailItem extends StatelessWidget {
+  const _GuildRailItem({
+    required this.guild,
+    required this.selected,
+    required this.onTap,
+  });
+
+  final DiscordGuild guild;
+  final bool selected;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      key: ValueKey('guild-rail-${guild.id}'),
+      height: 56,
+      child: Stack(
+        alignment: Alignment.center,
+        children: [
+          Positioned(
+            left: 0,
+            child: AnimatedContainer(
+              duration: const Duration(milliseconds: 160),
+              width: 4,
+              height: selected ? 40 : 8,
+              decoration: const BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.horizontal(
+                  right: Radius.circular(4),
+                ),
+              ),
+            ),
+          ),
+          Tooltip(
+            message: guild.name,
+            preferBelow: false,
+            child: InkWell(
+              borderRadius: BorderRadius.circular(selected ? 16 : 24),
+              onTap: onTap,
+              child: guild.isDirectMessages
+                  ? _DirectMessagesIcon(selected: selected)
+                  : DiscordGuildIcon(guild: guild, selected: selected),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _DirectMessagesIcon extends StatelessWidget {
+  const _DirectMessagesIcon({required this.selected});
+
+  final bool selected;
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 160),
+      width: DiscordLayout.guildIconSize,
+      height: DiscordLayout.guildIconSize,
+      decoration: BoxDecoration(
+        color: selected ? DiscordColors.brand : DiscordColors.chat,
+        borderRadius: BorderRadius.circular(selected ? 16 : 24),
+      ),
+      child: const Icon(Icons.discord, color: Colors.white, size: 26),
     );
   }
 }
@@ -229,9 +282,9 @@ class ChannelSidebar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return ColoredBox(
-      color: const Color(0xFF2B2D31),
+      color: DiscordColors.sidebar,
       child: SizedBox(
-        width: 260,
+        width: DiscordLayout.channelSidebarWidth,
         child: Column(
           children: [
             _ServerHeader(
@@ -257,10 +310,7 @@ class ChannelSidebar extends StatelessWidget {
               ),
             Expanded(
               child: ListView(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 8,
-                  vertical: 12,
-                ),
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
                 children: [
                   _SectionLabel(
                     guild?.isDirectMessages == true ? '다이렉트 메시지' : '채널',
@@ -321,6 +371,9 @@ class ChannelSidebar extends StatelessWidget {
             _UserPanel(
               user: currentUser,
               connectionLabel: connectionLabel,
+              voiceUiState: voiceUiState,
+              onSetMuted: onSetVoiceMuted,
+              onSetDeafened: onSetVoiceDeafened,
               onLogout: onLogout,
               onOpenSettings: onOpenUserSettings,
             ),
@@ -356,11 +409,11 @@ class _ServerHeader extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      height: 52,
+      height: DiscordLayout.channelHeaderHeight,
       alignment: Alignment.centerLeft,
       padding: const EdgeInsets.symmetric(horizontal: 16),
       decoration: const BoxDecoration(
-        border: Border(bottom: BorderSide(color: Color(0xFF1F2023))),
+        border: Border(bottom: BorderSide(color: DiscordColors.divider)),
       ),
       child: Row(
         children: [
@@ -369,11 +422,7 @@ class _ServerHeader extends StatelessWidget {
               name,
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
-              style: const TextStyle(
-                color: Colors.white,
-                fontSize: 16,
-                fontWeight: FontWeight.w700,
-              ),
+              style: DiscordTextStyles.heading,
             ),
           ),
           if (onCreateChannel != null)
@@ -403,18 +452,11 @@ class _SectionLabel extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.fromLTRB(8, 4, 8, 6),
+      padding: const EdgeInsets.fromLTRB(4, 10, 4, 4),
       child: Row(
         children: [
           Expanded(
-            child: Text(
-              label.toUpperCase(),
-              style: const TextStyle(
-                color: Color(0xFF949BA4),
-                fontSize: 11,
-                fontWeight: FontWeight.w700,
-              ),
-            ),
+            child: Text(label.toUpperCase(), style: DiscordTextStyles.label),
           ),
           ?actions,
         ],
@@ -440,66 +482,97 @@ class _ChannelTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return ListTile(
-      dense: true,
-      contentPadding: EdgeInsets.only(
-        left: channel.isThread ? 28 : 12,
-        right: 8,
-      ),
-      selected: selected,
-      selectedTileColor: const Color(0xFF404249),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
-      leading: Icon(
-        channel.isThread
-            ? Icons.forum_outlined
-            : channel.type == 1
-            ? Icons.person
-            : channel.type == 3
-            ? Icons.group
-            : Icons.tag,
-        size: channel.isThread ? 17 : 20,
-        color: const Color(0xFF949BA4),
-      ),
-      title: Text(
-        channel.isArchived ? '${channel.name} · 보관됨' : channel.name,
-        style: TextStyle(
-          color: selected ? Colors.white : const Color(0xFFB5BAC1),
-        ),
-      ),
-      trailing: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          if (unreadCount != 0)
-            SizedBox(
-              key: ValueKey('unread-${channel.id}'),
-              width: 32,
-              height: 20,
-              child: DecoratedBox(
-                decoration: BoxDecoration(
-                  color: const Color(0xFFF23F42),
-                  borderRadius: BorderRadius.circular(10),
+    return SizedBox(
+      height: DiscordLayout.channelTileHeight,
+      child: Material(
+        color: selected ? DiscordColors.selected : Colors.transparent,
+        borderRadius: const BorderRadius.all(DiscordRadius.small),
+        child: InkWell(
+          borderRadius: const BorderRadius.all(DiscordRadius.small),
+          onTap: onTap,
+          hoverColor: DiscordColors.hover,
+          child: Padding(
+            padding: EdgeInsets.only(left: channel.isThread ? 26 : 6, right: 4),
+            child: Row(
+              children: [
+                Icon(
+                  _channelIcon(channel),
+                  size: channel.isThread ? 16 : 20,
+                  color: selected
+                      ? DiscordColors.text
+                      : DiscordColors.textFaint,
                 ),
-                child: Center(
+                const SizedBox(width: 6),
+                Expanded(
                   child: Text(
-                    unreadCount > 99 ? '99+' : '$unreadCount',
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 11,
-                      fontWeight: FontWeight.w700,
+                    channel.isArchived ? '${channel.name} · 보관됨' : channel.name,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: DiscordTextStyles.channel.copyWith(
+                      color: selected
+                          ? DiscordColors.text
+                          : unreadCount > 0
+                          ? DiscordColors.textNormal
+                          : DiscordColors.textMuted,
+                      fontWeight: unreadCount > 0
+                          ? FontWeight.w700
+                          : FontWeight.w500,
                     ),
                   ),
                 ),
-              ),
+                if (unreadCount != 0)
+                  _UnreadBadge(channelId: channel.id, count: unreadCount),
+                ?actions,
+              ],
             ),
-          ?actions,
-        ],
+          ),
+        ),
       ),
-      onTap: onTap,
     );
   }
 }
 
-enum _ChannelAction { edit, delete }
+IconData _channelIcon(DiscordChannel channel) {
+  if (channel.isThread) {
+    return Icons.forum_outlined;
+  }
+  return switch (channel.type) {
+    1 => Icons.person,
+    3 => Icons.group,
+    5 => Icons.campaign,
+    15 || 16 => Icons.forum,
+    _ => Icons.tag,
+  };
+}
+
+class _UnreadBadge extends StatelessWidget {
+  const _UnreadBadge({required this.channelId, required this.count});
+
+  final String channelId;
+  final int count;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      key: ValueKey('unread-$channelId'),
+      constraints: const BoxConstraints(minWidth: 20, minHeight: 18),
+      padding: const EdgeInsets.symmetric(horizontal: 5),
+      decoration: const BoxDecoration(
+        color: DiscordColors.danger,
+        borderRadius: BorderRadius.all(Radius.circular(9)),
+      ),
+      alignment: Alignment.center,
+      child: Text(
+        count > 99 ? '99+' : '$count',
+        style: const TextStyle(
+          color: Colors.white,
+          fontSize: 10,
+          fontWeight: FontWeight.w700,
+        ),
+      ),
+    );
+  }
+}
 
 class _ChannelActionsButton extends StatelessWidget {
   const _ChannelActionsButton({
@@ -514,21 +587,21 @@ class _ChannelActionsButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return PopupMenuButton<_ChannelAction>(
-      tooltip: '${channel.name} 채널 설정',
-      onSelected: (action) {
-        switch (action) {
-          case _ChannelAction.edit:
-            onEdit();
-          case _ChannelAction.delete:
-            onDelete();
-        }
-      },
-      itemBuilder: (context) => const [
-        PopupMenuItem(value: _ChannelAction.edit, child: Text('채널 편집')),
-        PopupMenuItem(value: _ChannelAction.delete, child: Text('채널 삭제')),
+    return MenuAnchor(
+      style: const MenuStyle(
+        backgroundColor: WidgetStatePropertyAll(DiscordColors.sidebar),
+      ),
+      menuChildren: [
+        MenuItemButton(onPressed: onEdit, child: const Text('채널 편집')),
+        MenuItemButton(onPressed: onDelete, child: const Text('채널 삭제')),
       ],
-      icon: const Icon(Icons.settings, size: 16),
+      builder: (context, controller, _) => IconButton(
+        constraints: const BoxConstraints.tightFor(width: 28, height: 28),
+        padding: EdgeInsets.zero,
+        tooltip: '${channel.name} 채널 설정',
+        onPressed: controller.isOpen ? controller.close : controller.open,
+        icon: const Icon(Icons.edit_outlined, size: 15),
+      ),
     );
   }
 }
@@ -537,30 +610,36 @@ class _UserPanel extends StatelessWidget {
   const _UserPanel({
     required this.user,
     required this.connectionLabel,
+    required this.voiceUiState,
     required this.onLogout,
+    this.onSetMuted,
+    this.onSetDeafened,
     this.onOpenSettings,
   });
 
   final DiscordUser? user;
   final String connectionLabel;
+  final DiscordVoiceUiState voiceUiState;
   final VoidCallback onLogout;
+  final ValueChanged<bool>? onSetMuted;
+  final ValueChanged<bool>? onSetDeafened;
   final VoidCallback? onOpenSettings;
 
   @override
   Widget build(BuildContext context) {
     return ColoredBox(
-      color: const Color(0xFF232428),
+      color: DiscordColors.sidebarFooter,
       child: SizedBox(
-        height: 62,
+        height: DiscordLayout.userPanelHeight,
         child: Row(
           children: [
-            const SizedBox(width: 10),
-            const CircleAvatar(
-              radius: 18,
-              backgroundColor: Color(0xFF5865F2),
-              child: Icon(Icons.person, color: Colors.white),
-            ),
             const SizedBox(width: 8),
+            DiscordUserAvatar(
+              user: user,
+              radius: 16,
+              statusColor: DiscordColors.positive,
+            ),
+            const SizedBox(width: 7),
             Expanded(
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
@@ -570,31 +649,104 @@ class _UserPanel extends StatelessWidget {
                     user?.displayName ?? user?.username ?? '연결 중',
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(color: Colors.white, fontSize: 13),
+                    style: const TextStyle(
+                      color: DiscordColors.text,
+                      fontSize: 13,
+                      fontWeight: FontWeight.w600,
+                    ),
                   ),
                   Text(
                     connectionLabel,
                     style: const TextStyle(
-                      color: Color(0xFF23A55A),
-                      fontSize: 11,
+                      color: DiscordColors.textFaint,
+                      fontSize: 10,
                     ),
                   ),
                 ],
               ),
             ),
-            IconButton(
-              tooltip: '사용자 설정',
-              onPressed: onOpenSettings,
-              icon: const Icon(Icons.settings, color: Color(0xFFB5BAC1)),
+            _UserActionButton(
+              tooltip: voiceUiState.voice.selfMute ? '음소거 해제' : '음소거',
+              onPressed: onSetMuted == null
+                  ? null
+                  : () => onSetMuted!(!voiceUiState.voice.selfMute),
+              icon: voiceUiState.voice.selfMute ? Icons.mic_off : Icons.mic,
             ),
-            IconButton(
-              tooltip: '로그아웃',
-              onPressed: onLogout,
-              icon: const Icon(Icons.logout, color: Color(0xFFB5BAC1)),
+            _UserActionButton(
+              tooltip: voiceUiState.voice.selfDeaf ? '듣기 활성화' : '듣기 끄기',
+              onPressed: onSetDeafened == null
+                  ? null
+                  : () => onSetDeafened!(!voiceUiState.voice.selfDeaf),
+              icon: voiceUiState.voice.selfDeaf
+                  ? Icons.headset_off
+                  : Icons.headphones,
             ),
+            _UserMenu(onOpenSettings: onOpenSettings, onLogout: onLogout),
           ],
         ),
       ),
+    );
+  }
+}
+
+class _UserActionButton extends StatelessWidget {
+  const _UserActionButton({
+    required this.tooltip,
+    required this.onPressed,
+    required this.icon,
+  });
+
+  final String tooltip;
+  final VoidCallback? onPressed;
+  final IconData icon;
+
+  @override
+  Widget build(BuildContext context) {
+    return IconButton(
+      constraints: const BoxConstraints.tightFor(width: 30, height: 30),
+      padding: EdgeInsets.zero,
+      tooltip: tooltip,
+      onPressed: onPressed,
+      icon: Icon(icon, size: 18, color: DiscordColors.textMuted),
+    );
+  }
+}
+
+enum _UserMenuAction { settings, logout }
+
+class _UserMenu extends StatelessWidget {
+  const _UserMenu({required this.onOpenSettings, required this.onLogout});
+
+  final VoidCallback? onOpenSettings;
+  final VoidCallback onLogout;
+
+  @override
+  Widget build(BuildContext context) {
+    return PopupMenuButton<_UserMenuAction>(
+      tooltip: '사용자 메뉴',
+      constraints: const BoxConstraints.tightFor(width: 30, height: 30),
+      padding: EdgeInsets.zero,
+      icon: const Icon(
+        Icons.settings,
+        size: 18,
+        color: DiscordColors.textMuted,
+      ),
+      onSelected: (action) {
+        switch (action) {
+          case _UserMenuAction.settings:
+            onOpenSettings?.call();
+          case _UserMenuAction.logout:
+            onLogout();
+        }
+      },
+      itemBuilder: (_) => [
+        if (onOpenSettings != null)
+          const PopupMenuItem(
+            value: _UserMenuAction.settings,
+            child: Text('사용자 설정'),
+          ),
+        const PopupMenuItem(value: _UserMenuAction.logout, child: Text('로그아웃')),
+      ],
     );
   }
 }

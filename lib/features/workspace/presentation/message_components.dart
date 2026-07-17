@@ -3,13 +3,15 @@ import 'package:discord_native/features/messages/domain/discord_message_state.da
 import 'package:discord_native/features/workspace/presentation/attachment_video_player.dart';
 import 'package:discord_native/features/workspace/presentation/message_actions.dart';
 import 'package:discord_native/features/workspace/presentation/discord_message_content.dart';
+import 'package:discord_native/features/workspace/presentation/discord_design_tokens.dart';
+import 'package:discord_native/features/workspace/presentation/discord_identity.dart';
 import 'package:flutter/material.dart';
 
 typedef MessageReactionCallback =
     Future<void> Function(DiscordMessage message, DiscordReaction reaction);
 typedef AttachmentVideoBuilder = Widget Function(DiscordAttachment attachment);
 
-class MessageBubble extends StatelessWidget {
+class MessageBubble extends StatefulWidget {
   const MessageBubble({
     required this.message,
     required this.onReply,
@@ -37,87 +39,132 @@ class MessageBubble extends StatelessWidget {
   onDownloadAttachment;
 
   @override
+  State<MessageBubble> createState() => _MessageBubbleState();
+}
+
+class _MessageBubbleState extends State<MessageBubble> {
+  final ValueNotifier<bool> _hovered = ValueNotifier(false);
+
+  @override
+  void dispose() {
+    _hovered.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
-    final time = message.timestamp.toLocal();
+    final time = widget.message.timestamp.toLocal();
     final timeLabel =
         '${time.hour.toString().padLeft(2, '0')}:'
         '${time.minute.toString().padLeft(2, '0')}';
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const CircleAvatar(
-            radius: 20,
-            backgroundColor: Color(0xFF5865F2),
-            child: Icon(Icons.person, color: Colors.white),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                if (message.referencedMessage case final referenced?)
-                  MessageReplyPreview(message: referenced),
-                _MessageHeader(
-                  message: message,
+    return MouseRegion(
+      onEnter: (_) => _hovered.value = true,
+      onExit: (_) => _hovered.value = false,
+      child: ValueListenableBuilder(
+        valueListenable: _hovered,
+        builder: (context, hovered, _) => Stack(
+          clipBehavior: Clip.none,
+          children: [
+            ColoredBox(
+              color: hovered ? DiscordColors.hover : Colors.transparent,
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(16, 3, 16, 3),
+                child: _MessageBody(
+                  message: widget.message,
                   timeLabel: timeLabel,
-                  onReply: onReply,
-                  onStartThread: onStartThread,
-                  canEdit: canEdit,
-                  canDelete: canDelete,
-                  onEdit: onEdit,
-                  onDelete: onDelete,
-                  onTogglePin: onTogglePin,
+                  onToggleReaction: widget.onToggleReaction,
+                  onDownloadAttachment: widget.onDownloadAttachment,
                 ),
-                if (message.content.isNotEmpty ||
-                    message.embeds.isNotEmpty ||
-                    message.stickers.isNotEmpty) ...[
-                  const SizedBox(height: 3),
-                  DiscordMessageContent(message: message),
-                ],
-                for (final attachment in message.attachments)
-                  MessageAttachmentCard(
-                    attachment: attachment,
-                    onDownload: onDownloadAttachment,
-                  ),
-                if (message.reactions.isNotEmpty)
-                  MessageReactionList(
-                    message: message,
-                    reactions: message.reactions,
-                    onToggleReaction: onToggleReaction,
-                  ),
-              ],
+              ),
             ),
-          ),
-        ],
+            Positioned(
+              right: 16,
+              top: -14,
+              child: IgnorePointer(
+                ignoring: !hovered,
+                child: AnimatedOpacity(
+                  duration: const Duration(milliseconds: 100),
+                  opacity: hovered ? 1 : 0,
+                  child: _MessageHoverActions(message: widget),
+                ),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
 }
 
-class _MessageHeader extends StatelessWidget {
-  const _MessageHeader({
+class _MessageBody extends StatelessWidget {
+  const _MessageBody({
     required this.message,
     required this.timeLabel,
-    required this.onReply,
-    required this.onStartThread,
-    required this.canEdit,
-    required this.canDelete,
-    required this.onEdit,
-    required this.onDelete,
-    required this.onTogglePin,
+    required this.onToggleReaction,
+    required this.onDownloadAttachment,
   });
 
   final DiscordMessage message;
   final String timeLabel;
-  final VoidCallback onReply;
-  final VoidCallback? onStartThread;
-  final bool canEdit;
-  final bool canDelete;
-  final VoidCallback? onEdit;
-  final VoidCallback? onDelete;
-  final VoidCallback? onTogglePin;
+  final MessageReactionCallback? onToggleReaction;
+  final Future<String?> Function(DiscordAttachment attachment)?
+  onDownloadAttachment;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        DiscordInitialAvatar(id: message.authorId, label: message.authorName),
+        const SizedBox(width: 12),
+        Expanded(child: _MessageContentColumn(message, timeLabel, this)),
+      ],
+    );
+  }
+}
+
+class _MessageContentColumn extends StatelessWidget {
+  const _MessageContentColumn(this.message, this.timeLabel, this.owner);
+
+  final DiscordMessage message;
+  final String timeLabel;
+  final _MessageBody owner;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        if (message.referencedMessage case final referenced?)
+          MessageReplyPreview(message: referenced),
+        _MessageHeader(message: message, timeLabel: timeLabel),
+        if (message.content.isNotEmpty ||
+            message.embeds.isNotEmpty ||
+            message.stickers.isNotEmpty) ...[
+          const SizedBox(height: 2),
+          DiscordMessageContent(message: message),
+        ],
+        for (final attachment in message.attachments)
+          MessageAttachmentCard(
+            attachment: attachment,
+            onDownload: owner.onDownloadAttachment,
+          ),
+        if (message.reactions.isNotEmpty)
+          MessageReactionList(
+            message: message,
+            reactions: message.reactions,
+            onToggleReaction: owner.onToggleReaction,
+          ),
+      ],
+    );
+  }
+}
+
+class _MessageHeader extends StatelessWidget {
+  const _MessageHeader({required this.message, required this.timeLabel});
+
+  final DiscordMessage message;
+  final String timeLabel;
 
   @override
   Widget build(BuildContext context) {
@@ -144,43 +191,88 @@ class _MessageHeader extends StatelessWidget {
             style: TextStyle(color: Color(0xFFF0B232), fontSize: 11),
           ),
         ],
-        const Spacer(),
-        if (onStartThread != null)
-          IconButton(
-            tooltip: '스레드 시작',
-            visualDensity: VisualDensity.compact,
-            onPressed: onStartThread,
-            icon: const Icon(
-              Icons.forum_outlined,
-              size: 18,
-              color: Color(0xFFB5BAC1),
-            ),
-          ),
-        IconButton(
-          tooltip: '답장',
-          visualDensity: VisualDensity.compact,
-          onPressed: onReply,
-          icon: const Icon(Icons.reply, size: 18, color: Color(0xFFB5BAC1)),
-        ),
-        if (canEdit || canDelete || onTogglePin != null)
-          MessageActionsMenu(
-            pinned: message.pinned,
-            canEdit: canEdit && onEdit != null,
-            canDelete: canDelete && onDelete != null,
-            canTogglePin: onTogglePin != null,
-            onSelected: (action) {
-              switch (action) {
-                case MessageAction.edit:
-                  onEdit?.call();
-                case MessageAction.togglePin:
-                  onTogglePin?.call();
-                case MessageAction.delete:
-                  onDelete?.call();
-              }
-            },
-          ),
       ],
     );
+  }
+}
+
+class _MessageHoverActions extends StatelessWidget {
+  const _MessageHoverActions({required this.message});
+
+  final MessageBubble message;
+
+  @override
+  Widget build(BuildContext context) {
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: DiscordColors.sidebar,
+        border: Border.all(color: DiscordColors.divider),
+        borderRadius: const BorderRadius.all(DiscordRadius.small),
+        boxShadow: const [
+          BoxShadow(color: Colors.black38, blurRadius: 4, offset: Offset(0, 2)),
+        ],
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          if (message.onStartThread != null)
+            _HoverAction(
+              tooltip: '스레드 시작',
+              icon: Icons.forum_outlined,
+              onPressed: message.onStartThread!,
+            ),
+          _HoverAction(
+            tooltip: '답장',
+            icon: Icons.reply,
+            onPressed: message.onReply,
+          ),
+          if (message.canEdit ||
+              message.canDelete ||
+              message.onTogglePin != null)
+            MessageActionsMenu(
+              pinned: message.message.pinned,
+              canEdit: message.canEdit && message.onEdit != null,
+              canDelete: message.canDelete && message.onDelete != null,
+              canTogglePin: message.onTogglePin != null,
+              onSelected: (action) => _onAction(message, action),
+            ),
+        ],
+      ),
+    );
+  }
+}
+
+class _HoverAction extends StatelessWidget {
+  const _HoverAction({
+    required this.tooltip,
+    required this.icon,
+    required this.onPressed,
+  });
+
+  final String tooltip;
+  final IconData icon;
+  final VoidCallback onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    return IconButton(
+      constraints: const BoxConstraints.tightFor(width: 32, height: 32),
+      padding: EdgeInsets.zero,
+      tooltip: tooltip,
+      onPressed: onPressed,
+      icon: Icon(icon, size: 18, color: DiscordColors.textMuted),
+    );
+  }
+}
+
+void _onAction(MessageBubble message, MessageAction action) {
+  switch (action) {
+    case MessageAction.edit:
+      message.onEdit?.call();
+    case MessageAction.togglePin:
+      message.onTogglePin?.call();
+    case MessageAction.delete:
+      message.onDelete?.call();
   }
 }
 
