@@ -1,0 +1,4 @@
+interface:
+  display_name: "Wiki Sync"
+  short_description: "코드 변경에 맞춰 기존 위키를 갱신하는 수정 스킬"
+  default_prompt: "Use $wiki-sync to update existing wiki notes so they match the code changes from this task."

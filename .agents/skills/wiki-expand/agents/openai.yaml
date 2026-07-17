@@ -1,0 +1,4 @@
+interface:
+  display_name: "Wiki Expand"
+  short_description: "새 문서와 허브 구조를 열어 위키를 확장하는 스킬"
+  default_prompt: "Use $wiki-expand to create new wiki notes and hook them into the right hubs and entry points."

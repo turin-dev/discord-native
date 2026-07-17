@@ -1,0 +1,4 @@
+interface:
+  display_name: "Wiki First Engineering"
+  short_description: "코드 작업 전후에 위키 루프를 강제하는 메타 스킬"
+  default_prompt: "Use $wiki-first-engineering to route this code-changing task through the repository wiki before and after implementation."

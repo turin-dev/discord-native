@@ -1,0 +1,4 @@
+interface:
+  display_name: "Wiki Lint"
+  short_description: "위키 링크와 허브 건강도를 점검하는 진단 스킬"
+  default_prompt: "Use $wiki-lint to check the wiki for unresolved links, broken hubs, and other structural issues before commit or push."
