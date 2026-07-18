@@ -179,40 +179,57 @@ class _PinnedMessageCard extends StatelessWidget {
             children: [
               _PinnedMessageAuthor(pin: pin),
               const SizedBox(height: 8),
-              Text(
-                _messageSummary(message),
-                maxLines: 4,
-                overflow: TextOverflow.ellipsis,
-                style: TextStyle(
-                  color: context.discordPalette.textMuted,
-                  fontSize: 13,
-                ),
-              ),
-              const SizedBox(height: 4),
-              Row(
-                children: [
-                  Text(
-                    '메시지로 이동',
-                    style: TextStyle(
-                      color: context.discordPalette.brand,
-                      fontSize: 11,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                  const Spacer(),
-                  if (onUnpin != null)
-                    IconButton(
-                      tooltip: '고정 해제',
-                      visualDensity: VisualDensity.compact,
-                      onPressed: () => onUnpin!(message),
-                      icon: const Icon(Icons.push_pin, size: 17),
-                    ),
-                ],
-              ),
+              _PinnedMessageDetails(message: message, onUnpin: onUnpin),
             ],
           ),
         ),
       ),
+    );
+  }
+}
+
+class _PinnedMessageDetails extends StatelessWidget {
+  const _PinnedMessageDetails({required this.message, required this.onUnpin});
+
+  final DiscordMessage message;
+  final PinnedMessageCallback? onUnpin;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          _messageSummary(message),
+          maxLines: 4,
+          overflow: TextOverflow.ellipsis,
+          style: TextStyle(
+            color: context.discordPalette.textMuted,
+            fontSize: 13,
+          ),
+        ),
+        const SizedBox(height: 4),
+        Row(
+          children: [
+            Text(
+              '메시지로 이동',
+              style: TextStyle(
+                color: context.discordPalette.brand,
+                fontSize: 11,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+            const Spacer(),
+            if (onUnpin != null)
+              IconButton(
+                tooltip: '고정 해제',
+                visualDensity: VisualDensity.compact,
+                onPressed: () => onUnpin!(message),
+                icon: const Icon(Icons.push_pin, size: 17),
+              ),
+          ],
+        ),
+      ],
     );
   }
 }

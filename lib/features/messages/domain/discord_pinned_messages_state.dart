@@ -53,6 +53,9 @@ final class DiscordPinnedMessagesState {
   bool get isOpen => channelId != null;
 
   DiscordPinnedMessagesState loadingMore() {
+    if (!isOpen || isLoading || isLoadingMore || !hasMore) {
+      return this;
+    }
     return DiscordPinnedMessagesState(
       channelId: channelId,
       pins: pins,
@@ -62,6 +65,10 @@ final class DiscordPinnedMessagesState {
   }
 
   DiscordPinnedMessagesState appendPage(DiscordMessagePinsPage page) {
+    final selectedChannelId = channelId;
+    if (selectedChannelId == null) {
+      return this;
+    }
     final candidates = [...pins, ...page.pins];
     final unique = [
       for (var index = 0; index < candidates.length; index += 1)
@@ -72,7 +79,7 @@ final class DiscordPinnedMessagesState {
           candidates[index],
     ];
     return DiscordPinnedMessagesState.loaded(
-      channelId: channelId ?? '',
+      channelId: selectedChannelId,
       pins: unique,
       hasMore: page.hasMore,
     );
