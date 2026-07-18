@@ -54,7 +54,7 @@ flutter build windows --release --split-debug-info=build/symbols/windows
 .\tool\benchmark_windows.ps1 -Enforce
 ```
 
-기준선은 analyzer 0건, 380개 테스트, line coverage 81.15%, Windows Release build 통과입니다. 현재 소스의 로컬 측정값은 시작 0.283초, working set 218.62MB, idle CPU 5.5%, 설치 디렉터리 59.34MB이며 메모리와 idle CPU가 각각 200MB·0.5% 기준을 넘었습니다. 성능 결과는 머신 상태에 영향을 받으므로 CI 산출물의 같은 JSON 측정값과 함께 판단합니다. Visual Studio file tracker 문제가 발생하면 `.\tool\build_windows.ps1 --debug` wrapper를 사용할 수 있습니다.
+기준선은 analyzer 0건, 380개 테스트, line coverage 81.15%, Windows Release build 통과입니다. 현재 소스의 로컬 측정값은 시작 0.241초, working set 186.75MB, idle CPU 5.438%, 설치 디렉터리 59.34MB이며 idle CPU만 0.5% 기준을 넘었습니다. 성능 결과는 머신 상태에 영향을 받으므로 CI 산출물의 같은 JSON 측정값과 함께 판단합니다. Visual Studio file tracker 문제가 발생하면 `.\tool\build_windows.ps1 --debug` wrapper를 사용할 수 있습니다.
 
 Installer와 서명 업데이트 절차는 [Windows Release runbook](07%20Runbooks/Windows%20Release.md)에 있습니다. 실제 tag release 전에는 운영 HTTPS feed와 별도 생성한 WinSparkle DSA key pair를 설정해야 합니다.
 
