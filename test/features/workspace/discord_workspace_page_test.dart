@@ -14,6 +14,7 @@ import 'package:discord_native/features/workspace/presentation/thread_controls.d
 import 'package:discord_native/features/workspace/presentation/workspace_navigation.dart';
 import 'package:discord_native/features/workspace/presentation/workspace_right_panel.dart';
 import 'package:discord_native/features/messages/domain/discord_message_search_state.dart';
+import 'package:discord_native/features/messages/domain/discord_pinned_messages_state.dart';
 import 'package:discord_native/features/messages/domain/discord_message_state.dart';
 import 'package:discord_native/features/messages/domain/discord_typing_state.dart';
 import 'package:discord_native/core/network/discord_rest_client.dart';
@@ -1119,6 +1120,93 @@ void main() {
     expect(requestedUsername, 'new.friend');
     expect(acceptedUserId, 'user-3');
     expect(openedUserId, 'user-2');
+  });
+
+  testWidgets('DM header에서 고정 메시지 panel을 열고 문맥으로 이동한다', (tester) async {
+    await tester.binding.setSurfaceSize(const Size(1280, 720));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+    final workspace = const DiscordWorkspaceState().payloadReceived({
+      'op': 0,
+      't': 'READY',
+      'd': {
+        'user': {'id': 'user-1', 'username': 'alice'},
+        'guilds': [],
+        'relationships': [],
+        'private_channels': [
+          {
+            'id': 'dm-1',
+            'type': 1,
+            'recipients': [
+              {'id': 'user-2', 'username': 'bob'},
+            ],
+          },
+        ],
+      },
+    });
+    final pin = DiscordMessagePin(
+      pinnedAt: DateTime.utc(2026, 7, 18, 11),
+      message: DiscordMessage(
+        id: 'message-pin-1',
+        channelId: 'dm-1',
+        content: '릴리스 전에 확인할 내용',
+        authorId: 'user-2',
+        authorName: 'bob',
+        timestamp: DateTime.utc(2026, 7, 18, 10),
+        pinned: true,
+      ),
+    );
+    var pinnedState = const DiscordPinnedMessagesState();
+    String? selectedMessageId;
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: StatefulBuilder(
+          builder: (context, setState) => DiscordWorkspacePage(
+            state: workspace,
+            pinnedMessagesState: pinnedState,
+            selectedGuildId: discordDirectMessagesGuildId,
+            selectedChannelId: 'dm-1',
+            connectionLabel: '연결됨',
+            onSelectGuild: (_) {},
+            onSelectChannel: (_) {},
+            onTogglePinnedMessages: () {
+              setState(() {
+                pinnedState = DiscordPinnedMessagesState.loaded(
+                  channelId: 'dm-1',
+                  pins: [pin],
+                  hasMore: false,
+                );
+              });
+            },
+            onClosePinnedMessages: () {
+              setState(() => pinnedState = const DiscordPinnedMessagesState());
+            },
+            onSelectPinnedMessage: (message) async {
+              selectedMessageId = message.id;
+            },
+            onLogout: () {},
+          ),
+        ),
+      ),
+    );
+
+    await tester.tap(find.byTooltip('고정된 메시지 보기'));
+    await tester.pump();
+
+    expect(find.byKey(const ValueKey('pinned-messages-panel')), findsOneWidget);
+    expect(find.text('고정된 메시지'), findsOneWidget);
+    expect(find.text('릴리스 전에 확인할 내용'), findsOneWidget);
+    expect(
+      tester.getSize(find.byKey(const ValueKey('pinned-messages-panel'))).width,
+      240,
+    );
+
+    await tester.tap(find.text('릴리스 전에 확인할 내용'));
+    await tester.tap(find.byTooltip('고정 메시지 닫기'));
+    await tester.pump();
+
+    expect(selectedMessageId, 'message-pin-1');
+    expect(find.byKey(const ValueKey('pinned-messages-panel')), findsNothing);
   });
 
   testWidgets('채널과 thread의 로컬 unread badge를 표시한다', (tester) async {
