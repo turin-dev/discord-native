@@ -20,7 +20,7 @@ aliases: [Open Questions]
 - 카메라 화상과 Go Live 화면공유 경로는 구현됐지만 실제 Discord SFU와 복수 참가자 환경의 장시간 호환성 검증이 남아 있다.
 - PTT는 앱 내 pointer hold와 Windows 전역 F1–F12 key binding, 0–2000ms release delay를 지원한다. 임의 키·마우스 버튼 recording과 관리자 권한으로 실행한 게임에서의 접근은 후속 범위이며, Windows UIPI 제약 때문에 앱과 대상 프로세스의 권한 수준이 다르면 전역 key 상태 확인이 실패할 수 있다.
 - 사용자 투표 참여는 역추적한 `/channels/{channel.id}/polls/{message.id}/answers/@me`를 사용한다. 공개 문서가 앱의 투표를 명시적으로 허용하지 않으므로 부계정 실기기 검증과 endpoint 변경 모니터링이 남아 있다.
-- channel 고정은 로컬 설정이다. Inbox unread는 서버 read state와 best-effort로 동기화하지만 비공개 계약 변화 시 로컬 값으로 fallback한다.
+- sidebar의 channel 고정은 로컬 설정이다. message 고정 목록·고정·해제는 공개 Message Pin API를 사용한다. Inbox unread는 서버 read state와 best-effort로 동기화하지만 비공개 계약 변화 시 로컬 값으로 fallback한다.
 - 자동 업데이트 배포에는 운영 HTTPS feed와 실제 WinSparkle DSA key pair를 CI secret으로 주입해야 한다. 저장소에는 key를 포함하지 않는다.
 - 공식 클라이언트의 private setting인 서버 폴더·사용자 계정 MFA 자격증명 로그인은 안정적인 공개 API가 없어 동일 동작을 보장하지 않는다.
 

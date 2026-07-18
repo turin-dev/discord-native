@@ -17,7 +17,10 @@ aliases: [Change Log]
 - group DM participant panel과 1:1 DM 전체 대화 폭을 분리하고 system dark를 참조 화면 기반 Midnight onyx palette로 보정
 - DM header의 현재 대화 메시지 검색, 240px 결과 panel과 결과 선택 `around` 컨텍스트 이동 구현
 - private channel 검색 endpoint와 guild 검색 endpoint를 repository·controller에서 분리하고 검색 경쟁 시 DM channel scope 보존
-- analyzer 0건, 365개 테스트와 80.91% line coverage, AOT symbol 분리·icon subset Windows Release build 검증
+- guild·DM header의 실제 고정 메시지 action, 240px cursor pagination panel, message 이동·해제 구현
+- 공개 Message Pin 목록 API와 `CHANNEL_PINS_UPDATE`를 연결하고 channel 전환 뒤 늦은 응답·mutation이 새 channel을 오염시키지 않도록 보정
+- analyzer 0건, 374개 테스트와 80.93% line coverage, AOT symbol 분리·icon subset Windows Release build와 Inno Setup installer 검증
+- 현재 소스 로컬 측정에서 시작 0.249초·메모리 164.68MB·설치 크기 59.33MB는 기준을 통과하고 유휴 CPU 5.25%는 0.5% 기준을 초과
 - Windows 전역 F1–F12 Push-to-Talk press/release 감지와 active PTT 음성 엔진 전달 구현
 - 전역 PTT 활성화, 단축키 선택과 0–2000ms release delay 설정·secure storage 영속화 구현
 - active PTT 음성 세션에서만 선택한 단일 virtual key를 확인하고, 대기 중에는 꺼지는 `GetAsyncKeyState` polling 경계 구현

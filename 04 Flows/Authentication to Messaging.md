@@ -40,11 +40,13 @@ aliases: [Authentication to Messaging]
 28. 비선택 channel의 새 message는 로컬 unread count를 증가시키고 channel 진입·전송·선택 channel 수신은 unread를 지운다.
 29. last-read ID와 unread count는 SQLite에 직렬 upsert되고 앱 재시작 시 복원된다.
 30. 소유 메시지는 작업 메뉴에서 편집·삭제하고, 모든 표시 메시지는 고정·해제 endpoint로 라우팅한다.
-31. REST 응답은 즉시 불변 message state에 반영하고 partial MESSAGE_UPDATE와 MESSAGE_DELETE dispatch가 후속 상태를 동기화한다.
-32. reaction 선택은 현재 사용자의 추가·제거 endpoint로 라우팅한다.
-33. title bar는 방문한 channel history의 뒤로·앞으로 이동과 로컬 unread Inbox를 제공한다.
-34. channel 고정, sidebar 폭, 표시 밀도와 테마는 desktop 설정에 저장해 다음 실행에 복원한다.
-35. 로그아웃은 secure storage, 로컬 read state와 Gateway 연결을 정리한다.
+31. guild·DM header의 pin action은 현재 channel의 고정 메시지를 50개씩 읽고 240px panel에 표시한다. 더 읽기는 ISO 8601 `before` cursor를 사용한다.
+32. 고정 메시지를 선택하면 해당 message 주변 50개를 `around`로 열고, 해제·삭제와 다른 기기의 CHANNEL_PINS_UPDATE는 열린 panel을 즉시 동기화한다.
+33. REST 응답은 즉시 불변 message state에 반영하고 partial MESSAGE_UPDATE와 MESSAGE_DELETE dispatch가 후속 상태를 동기화한다.
+34. reaction 선택은 현재 사용자의 추가·제거 endpoint로 라우팅한다.
+35. title bar는 방문한 channel history의 뒤로·앞으로 이동과 로컬 unread Inbox를 제공한다.
+36. channel 고정, sidebar 폭, 표시 밀도와 테마는 desktop 설정에 저장해 다음 실행에 복원한다.
+37. 로그아웃은 secure storage, 로컬 read state와 Gateway 연결을 정리한다.
 
 오류는 사용자 친화적 상태로 변환하며 토큰을 로그에 기록하지 않는다.
 
