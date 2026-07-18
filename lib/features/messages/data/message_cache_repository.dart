@@ -321,6 +321,7 @@ Map<String, Object?> _messageJson(DiscordMessage message) {
       'id': message.authorId,
       'username': message.authorName,
       'global_name': message.authorName,
+      'avatar': message.authorAvatarHash,
     },
     'timestamp': message.timestamp.toUtc().toIso8601String(),
     'edited_timestamp': message.editedTimestamp?.toUtc().toIso8601String(),

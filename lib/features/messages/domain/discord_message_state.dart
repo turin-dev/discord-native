@@ -224,6 +224,7 @@ final class DiscordMessage {
     required this.authorId,
     required this.authorName,
     required this.timestamp,
+    this.authorAvatarHash,
     this.editedTimestamp,
     this.reference,
     this.referencedMessage,
@@ -255,6 +256,7 @@ final class DiscordMessage {
         author['global_name'] ?? author['username'],
         'message.author.username',
       ),
+      authorAvatarHash: _optionalString(author['avatar']),
       timestamp: _requiredDate(json['timestamp'], 'message.timestamp'),
       editedTimestamp: _optionalDate(json['edited_timestamp']),
       reference: reference == null
@@ -299,6 +301,7 @@ final class DiscordMessage {
   final String content;
   final String authorId;
   final String authorName;
+  final String? authorAvatarHash;
   final DateTime timestamp;
   final DateTime? editedTimestamp;
   final DiscordMessageReference? reference;
@@ -373,6 +376,9 @@ final class DiscordMessage {
               author['global_name'] ?? author['username'],
               'message.author.username',
             ),
+      authorAvatarHash: author == null || !author.containsKey('avatar')
+          ? authorAvatarHash
+          : _optionalString(author['avatar']),
       timestamp: _optionalDate(json['timestamp']) ?? timestamp,
       editedTimestamp: json.containsKey('edited_timestamp')
           ? _optionalDate(json['edited_timestamp'])
@@ -437,6 +443,7 @@ final class DiscordMessage {
       content: content ?? this.content,
       authorId: authorId,
       authorName: authorName,
+      authorAvatarHash: authorAvatarHash,
       timestamp: timestamp,
       editedTimestamp: editedTimestamp,
       reference: reference,

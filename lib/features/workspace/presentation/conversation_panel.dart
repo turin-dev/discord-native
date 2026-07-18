@@ -420,7 +420,9 @@ class _MessageList extends StatelessWidget {
         final message = state.messages[messageIndex];
         final isOwnMessage = currentUserId == message.authorId;
         return MessageBubble(
+          key: ValueKey('message-${message.id}'),
           message: message,
+          grouped: _isGroupedMessage(state.messages, messageIndex),
           mediaProxyUrls: mediaProxyUrls,
           onReply: () => onReply(message),
           onStartThread: onStartThread == null
@@ -442,6 +444,27 @@ class _MessageList extends StatelessWidget {
       },
     );
   }
+}
+
+bool _isGroupedMessage(List<DiscordMessage> messages, int index) {
+  if (index <= 0 || index >= messages.length) {
+    return false;
+  }
+  final current = messages[index];
+  final previous = messages[index - 1];
+  if (current.authorId != previous.authorId ||
+      current.referencedMessage != null) {
+    return false;
+  }
+  final gap = current.timestamp.difference(previous.timestamp);
+  if (gap.isNegative || gap >= const Duration(minutes: 7)) {
+    return false;
+  }
+  final currentDay = current.timestamp.toLocal();
+  final previousDay = previous.timestamp.toLocal();
+  return currentDay.year == previousDay.year &&
+      currentDay.month == previousDay.month &&
+      currentDay.day == previousDay.day;
 }
 
 Map<String, String> _attachmentMediaProxyUrls(List<DiscordMessage> messages) {
