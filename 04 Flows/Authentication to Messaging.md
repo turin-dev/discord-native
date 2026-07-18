@@ -35,7 +35,7 @@ aliases: [Authentication to Messaging]
 23. 첨부 이미지는 캐시 미리보기를 표시하고 다운로드는 native save dialog 뒤 Discord CDN HTTPS allowlist를 검증한다.
 24. active·archived thread 목록은 parent channel 아래에 병합되고 Gateway THREAD dispatch로 갱신된다.
 25. 사용자는 공개 thread를 만들거나 메시지에서 시작하고, thread 참여와 보관·해제를 수행한다.
-26. 검색 panel은 guild 전체 또는 현재 channel의 메시지를 검색하고 색인 준비 중이면 서버가 지정한 시간 뒤 재시도한다.
+26. guild 검색 panel은 guild 전체 또는 현재 channel을 검색한다. DM header 검색은 선택한 private channel만 조회하고 활성화된 동안 멤버 panel을 검색 결과 panel로 교체한다. 색인 준비 중이면 서버가 지정한 시간 뒤 재시도한다.
 27. 검색 결과를 선택하면 해당 channel의 message 주변 50개를 `around`로 읽어 대화 컨텍스트를 표시한다.
 28. 비선택 channel의 새 message는 로컬 unread count를 증가시키고 channel 진입·전송·선택 channel 수신은 unread를 지운다.
 29. last-read ID와 unread count는 SQLite에 직렬 upsert되고 앱 재시작 시 복원된다.
