@@ -44,6 +44,7 @@ Windows 기본 환경에서는 `Segoe UI`를 사용한다. 본문은 14px, chann
 - title bar의 뒤로·앞으로 버튼은 방문한 guild/channel 기록을 보존하고, Inbox는 현재 로컬 unread channel을 연다.
 - channel context action으로 고정한 channel은 별도 상단 section에 표시되고 설정에 저장된다.
 - Message action은 hover에서만 보이되, 메뉴가 열린 동안 anchor가 제거되지 않아야 한다.
+- 같은 작성자의 기본 메시지가 7분 안에 이어지면 첫 message의 avatar·name·time만 표시하고 후속 message는 같은 content column에 맞춘다. 7분 경계, 날짜 변경과 답장은 새 그룹을 시작하며 압축 message를 hover하면 왼쪽 timestamp와 해당 message의 action을 표시한다.
 - 고정 메시지 panel은 열린 동안 검색·member surface보다 우선한다. panel을 닫으면 활성 검색 결과 또는 guild member·group DM member surface로 돌아간다.
 - Discord attachment 직링크는 raw URL을 노출하지 않고 filename 링크와 최대 400×300 inline media를 표시한다. signed proxy를 찾지 못하거나 만료되면 오류 상태가 메시지 높이를 과도하게 점유하지 않아야 한다.
 - 사용자에게 영향을 주는 기능은 tooltip과 keyboard focus를 제공한다. 장식 icon은 action처럼 보이지 않게 한다.

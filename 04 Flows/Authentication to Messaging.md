@@ -31,22 +31,23 @@ aliases: [Authentication to Messaging]
 19. TYPING_START는 자신을 제외하고 표시하며 새 message 또는 10초 만료 시 제거한다.
 20. 파일 선택 결과는 MIME type과 바이트로 정규화되며, 최대 10개·총 25 MiB 검증 후 `payload_json`과 `files[n]` multipart 요청으로 전송된다.
 21. 첨부가 포함된 답장은 동일 multipart payload에 message reference를 보존한다.
-22. 수신 message의 markdown, 코드, spoiler, mention, custom emoji, embed와 sticker는 rich content renderer로 전달된다. Discord attachment 직링크는 filename과 최대 400×300 inline media로 변환된다.
-23. 첨부 이미지는 캐시 미리보기를 표시한다. 만료된 직링크는 계정 전체 메시지 캐시에서 attachment path가 같은 signed proxy를 복원하며, 다운로드는 native save dialog 뒤 Discord CDN HTTPS allowlist를 검증한다.
-24. active·archived thread 목록은 parent channel 아래에 병합되고 Gateway THREAD dispatch로 갱신된다.
-25. 사용자는 공개 thread를 만들거나 메시지에서 시작하고, thread 참여와 보관·해제를 수행한다.
-26. guild 검색 panel은 guild 전체 또는 현재 channel을 검색한다. DM header 검색은 선택한 private channel만 조회하고 활성화된 동안 멤버 panel을 검색 결과 panel로 교체한다. 색인 준비 중이면 서버가 지정한 시간 뒤 재시도한다.
-27. 검색 결과를 선택하면 해당 channel의 message 주변 50개를 `around`로 읽어 대화 컨텍스트를 표시한다.
-28. 비선택 channel의 새 message는 로컬 unread count를 증가시키고 channel 진입·전송·선택 channel 수신은 unread를 지운다.
-29. last-read ID와 unread count는 SQLite에 직렬 upsert되고 앱 재시작 시 복원된다.
-30. 소유 메시지는 작업 메뉴에서 편집·삭제하고, 모든 표시 메시지는 고정·해제 endpoint로 라우팅한다.
-31. guild·DM header의 pin action은 현재 channel의 고정 메시지를 50개씩 읽고 240px panel에 표시한다. 더 읽기는 ISO 8601 `before` cursor를 사용한다.
-32. 고정 메시지를 선택하면 해당 message 주변 50개를 `around`로 열고, 해제·삭제와 다른 기기의 CHANNEL_PINS_UPDATE는 열린 panel을 즉시 동기화한다.
-33. REST 응답은 즉시 불변 message state에 반영하고 partial MESSAGE_UPDATE와 MESSAGE_DELETE dispatch가 후속 상태를 동기화한다.
-34. reaction 선택은 현재 사용자의 추가·제거 endpoint로 라우팅한다.
-35. title bar는 방문한 channel history의 뒤로·앞으로 이동과 로컬 unread Inbox를 제공한다.
-36. channel 고정, sidebar 폭, 표시 밀도와 테마는 desktop 설정에 저장해 다음 실행에 복원한다.
-37. 로그아웃은 secure storage, 로컬 read state와 Gateway 연결을 정리한다.
+22. 수신 message의 author avatar hash는 partial update와 SQLite cache에서 보존해 CDN avatar로 표시한다. 같은 작성자의 7분 이내 기본 메시지는 하나의 header·avatar 아래 묶고 날짜 변경, 7분 경계와 답장은 새 그룹을 시작한다.
+23. 수신 message의 markdown, 코드, spoiler, mention, custom emoji, embed와 sticker는 rich content renderer로 전달된다. Discord attachment 직링크는 filename과 최대 400×300 inline media로 변환된다.
+24. 첨부 이미지는 캐시 미리보기를 표시한다. 만료된 직링크는 계정 전체 메시지 캐시에서 attachment path가 같은 signed proxy를 복원하며, 다운로드는 native save dialog 뒤 Discord CDN HTTPS allowlist를 검증한다.
+25. active·archived thread 목록은 parent channel 아래에 병합되고 Gateway THREAD dispatch로 갱신된다.
+26. 사용자는 공개 thread를 만들거나 메시지에서 시작하고, thread 참여와 보관·해제를 수행한다.
+27. guild 검색 panel은 guild 전체 또는 현재 channel을 검색한다. DM header 검색은 선택한 private channel만 조회하고 활성화된 동안 멤버 panel을 검색 결과 panel로 교체한다. 색인 준비 중이면 서버가 지정한 시간 뒤 재시도한다.
+28. 검색 결과를 선택하면 해당 channel의 message 주변 50개를 `around`로 읽어 대화 컨텍스트를 표시한다.
+29. 비선택 channel의 새 message는 로컬 unread count를 증가시키고 channel 진입·전송·선택 channel 수신은 unread를 지운다.
+30. last-read ID와 unread count는 SQLite에 직렬 upsert되고 앱 재시작 시 복원된다.
+31. 소유 메시지는 작업 메뉴에서 편집·삭제하고, 모든 표시 메시지는 고정·해제 endpoint로 라우팅한다.
+32. guild·DM header의 pin action은 현재 channel의 고정 메시지를 50개씩 읽고 240px panel에 표시한다. 더 읽기는 ISO 8601 `before` cursor를 사용한다.
+33. 고정 메시지를 선택하면 해당 message 주변 50개를 `around`로 열고, 해제·삭제와 다른 기기의 CHANNEL_PINS_UPDATE는 열린 panel을 즉시 동기화한다.
+34. REST 응답은 즉시 불변 message state에 반영하고 partial MESSAGE_UPDATE와 MESSAGE_DELETE dispatch가 후속 상태를 동기화한다.
+35. reaction 선택은 현재 사용자의 추가·제거 endpoint로 라우팅한다.
+36. title bar는 방문한 channel history의 뒤로·앞으로 이동과 로컬 unread Inbox를 제공한다.
+37. channel 고정, sidebar 폭, 표시 밀도와 테마는 desktop 설정에 저장해 다음 실행에 복원한다.
+38. 로그아웃은 secure storage, 로컬 read state와 Gateway 연결을 정리한다.
 
 오류는 사용자 친화적 상태로 변환하며 토큰을 로그에 기록하지 않는다.
 
