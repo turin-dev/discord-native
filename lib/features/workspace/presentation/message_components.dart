@@ -14,6 +14,7 @@ typedef AttachmentVideoBuilder = Widget Function(DiscordAttachment attachment);
 class MessageBubble extends StatefulWidget {
   const MessageBubble({
     required this.message,
+    required this.mediaProxyUrls,
     required this.onReply,
     required this.onToggleReaction,
     required this.onVotePoll,
@@ -28,6 +29,7 @@ class MessageBubble extends StatefulWidget {
   });
 
   final DiscordMessage message;
+  final Map<String, String> mediaProxyUrls;
   final VoidCallback onReply;
   final VoidCallback? onStartThread;
   final MessageReactionCallback? onToggleReaction;
@@ -75,6 +77,7 @@ class _MessageBubbleState extends State<MessageBubble> {
                 padding: const EdgeInsets.fromLTRB(16, 3, 16, 3),
                 child: _MessageBody(
                   message: widget.message,
+                  mediaProxyUrls: widget.mediaProxyUrls,
                   timeLabel: timeLabel,
                   onToggleReaction: widget.onToggleReaction,
                   onVotePoll: widget.onVotePoll,
@@ -104,6 +107,7 @@ class _MessageBubbleState extends State<MessageBubble> {
 class _MessageBody extends StatelessWidget {
   const _MessageBody({
     required this.message,
+    required this.mediaProxyUrls,
     required this.timeLabel,
     required this.onToggleReaction,
     required this.onVotePoll,
@@ -111,6 +115,7 @@ class _MessageBody extends StatelessWidget {
   });
 
   final DiscordMessage message;
+  final Map<String, String> mediaProxyUrls;
   final String timeLabel;
   final MessageReactionCallback? onToggleReaction;
   final PollVoteCallback? onVotePoll;
@@ -150,7 +155,11 @@ class _MessageContentColumn extends StatelessWidget {
             message.stickers.isNotEmpty ||
             message.poll != null) ...[
           const SizedBox(height: 2),
-          DiscordMessageContent(message: message, onVotePoll: owner.onVotePoll),
+          DiscordMessageContent(
+            message: message,
+            mediaProxyUrls: owner.mediaProxyUrls,
+            onVotePoll: owner.onVotePoll,
+          ),
         ],
         for (final attachment in message.attachments)
           MessageAttachmentCard(

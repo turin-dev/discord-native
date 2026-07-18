@@ -10,16 +10,21 @@ import 'package:markdown/markdown.dart' as md;
 class DiscordMessageContent extends StatelessWidget {
   const DiscordMessageContent({
     required this.message,
+    this.mediaProxyUrls = const {},
     this.onVotePoll,
     super.key,
   });
 
   final DiscordMessage message;
+  final Map<String, String> mediaProxyUrls;
   final PollVoteCallback? onVotePoll;
 
   @override
   Widget build(BuildContext context) {
-    final mediaLinks = _discordMediaLinks(message.markdownContent);
+    final mediaLinks = _discordMediaLinks(
+      message.markdownContent,
+      mediaProxyUrls,
+    );
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -63,12 +68,14 @@ final class _DiscordMediaLink {
     required this.start,
     required this.end,
     required this.uri,
+    required this.mediaUri,
     required this.fileName,
   });
 
   final int start;
   final int end;
   final Uri uri;
+  final Uri mediaUri;
   final String fileName;
 }
 
@@ -86,7 +93,7 @@ class _DiscordMediaLinkPreview extends StatelessWidget {
       clipBehavior: Clip.antiAlias,
       decoration: BoxDecoration(borderRadius: BorderRadius.circular(4)),
       child: CachedNetworkImage(
-        imageUrl: link.uri.toString(),
+        imageUrl: link.mediaUri.toString(),
         fit: BoxFit.contain,
         placeholder: (_, _) => SizedBox(
           width: 400,
@@ -105,7 +112,10 @@ class _DiscordMediaLinkPreview extends StatelessWidget {
   }
 }
 
-List<_DiscordMediaLink> _discordMediaLinks(String content) {
+List<_DiscordMediaLink> _discordMediaLinks(
+  String content,
+  Map<String, String> mediaProxyUrls,
+) {
   final matches = RegExp(
     r'https://(?:cdn\.discordapp\.com|media\.discordapp\.net)/[^\s<>()]+',
     caseSensitive: false,
@@ -117,6 +127,7 @@ List<_DiscordMediaLink> _discordMediaLinks(String content) {
           start: match.start,
           end: match.end,
           uri: uri,
+          mediaUri: _discordImageUri(mediaProxyUrls[uri.path]) ?? uri,
           fileName: _mediaFileName(uri),
         ),
   ]);

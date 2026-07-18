@@ -400,6 +400,7 @@ class _MessageList extends StatelessWidget {
       );
     }
     final showPagination = state.hasMore || state.isLoadingOlder;
+    final mediaProxyUrls = _attachmentMediaProxyUrls(state.messages);
     return ListView.builder(
       reverse: true,
       padding: const EdgeInsets.symmetric(vertical: 12),
@@ -417,6 +418,7 @@ class _MessageList extends StatelessWidget {
         final isOwnMessage = currentUserId == message.authorId;
         return MessageBubble(
           message: message,
+          mediaProxyUrls: mediaProxyUrls,
           onReply: () => onReply(message),
           onStartThread: onStartThread == null
               ? null
@@ -437,6 +439,37 @@ class _MessageList extends StatelessWidget {
       },
     );
   }
+}
+
+Map<String, String> _attachmentMediaProxyUrls(List<DiscordMessage> messages) {
+  return Map.unmodifiable(
+    Map.fromEntries([
+      for (final message in messages)
+        for (final attachment in message.attachments)
+          ?_attachmentMediaProxyEntry(attachment),
+    ]),
+  );
+}
+
+MapEntry<String, String>? _attachmentMediaProxyEntry(
+  DiscordAttachment attachment,
+) {
+  if (!attachment.isImage) {
+    return null;
+  }
+  final path = _discordAttachmentPath(attachment.url);
+  return path == null ? null : MapEntry(path, attachment.proxyUrl);
+}
+
+String? _discordAttachmentPath(String value) {
+  final uri = Uri.tryParse(value);
+  const hosts = {'cdn.discordapp.com', 'media.discordapp.net'};
+  if (uri == null ||
+      uri.scheme != 'https' ||
+      !hosts.contains(uri.host.toLowerCase())) {
+    return null;
+  }
+  return uri.path;
 }
 
 String _composerHint(DiscordChannel? channel) {
