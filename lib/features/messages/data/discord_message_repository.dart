@@ -1,4 +1,5 @@
 import 'package:discord_native/core/network/discord_rest_client.dart';
+import 'package:discord_native/features/messages/domain/discord_pinned_messages_state.dart';
 import 'package:discord_native/features/messages/domain/discord_message_state.dart';
 import 'package:discord_native/features/workspace/domain/discord_workspace_state.dart';
 
@@ -12,6 +13,12 @@ abstract interface class MessageRepository {
   Future<List<DiscordMessage>> fetchMessagesAround(
     String channelId,
     String messageId, {
+    int limit = 50,
+  });
+
+  Future<DiscordMessagePinsPage> fetchPinnedMessages(
+    String channelId, {
+    DateTime? before,
     int limit = 50,
   });
 
@@ -102,6 +109,15 @@ final class InvalidMessageSearchException implements Exception {
   String toString() => message;
 }
 
+final class InvalidPinnedMessagesException implements Exception {
+  const InvalidPinnedMessagesException(this.message);
+
+  final String message;
+
+  @override
+  String toString() => message;
+}
+
 final class DiscordMessageRepository implements MessageRepository {
   DiscordMessageRepository(
     this._api, {
@@ -132,6 +148,35 @@ final class DiscordMessageRepository implements MessageRepository {
     return _fetchMessages(
       channelId,
       queryParameters: {'limit': limit.clamp(1, 100), 'around': messageId},
+    );
+  }
+
+  @override
+  Future<DiscordMessagePinsPage> fetchPinnedMessages(
+    String channelId, {
+    DateTime? before,
+    int limit = 50,
+  }) async {
+    final normalizedChannelId = channelId.trim();
+    if (normalizedChannelId.isEmpty) {
+      throw const InvalidPinnedMessagesException('고정 메시지를 조회할 채널이 올바르지 않습니다.');
+    }
+    final body = _readMap(
+      await _api.get(
+        '/channels/$normalizedChannelId/messages/pins',
+        queryParameters: {
+          'limit': limit.clamp(1, 50),
+          if (before != null) 'before': before.toUtc().toIso8601String(),
+        },
+      ),
+      '고정 메시지 목록',
+    );
+    final pins = [
+      for (final item in _readList(body['items'])) _readMessagePin(item),
+    ];
+    return DiscordMessagePinsPage(
+      pins: pins,
+      hasMore: body['has_more'] == true,
     );
   }
 
@@ -544,4 +589,19 @@ Map<String, Object?> _readMap(Object? value, String field) {
 
 List<Object?> _readList(Object? value) {
   return value is List ? List.unmodifiable(value) : const [];
+}
+
+DiscordMessagePin _readMessagePin(Object? value) {
+  final pin = _readMap(value, '고정 메시지');
+  final pinnedAt = switch (pin['pinned_at']) {
+    final String value => DateTime.tryParse(value),
+    _ => null,
+  };
+  if (pinnedAt == null) {
+    throw const FormatException('고정 시각 형식이 올바르지 않습니다.');
+  }
+  final message = DiscordMessage.fromJson(
+    _readMessage(pin['message']),
+  ).copyWith(pinned: true);
+  return DiscordMessagePin(pinnedAt: pinnedAt, message: message);
 }

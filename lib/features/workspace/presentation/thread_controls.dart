@@ -18,6 +18,8 @@ class ThreadConversationHeader extends StatelessWidget {
     this.directMessageSearchQuery = '',
     this.onSearchDirectMessages,
     this.onClearDirectMessageSearch,
+    this.pinnedMessagesOpen = false,
+    this.onTogglePinnedMessages,
     this.onRefreshThreads,
     this.onCreateThread,
     this.onJoinThread,
@@ -29,6 +31,8 @@ class ThreadConversationHeader extends StatelessWidget {
   final String directMessageSearchQuery;
   final DirectMessageSearchCallback? onSearchDirectMessages;
   final VoidCallback? onClearDirectMessageSearch;
+  final bool pinnedMessagesOpen;
+  final VoidCallback? onTogglePinnedMessages;
   final RefreshThreadsCallback? onRefreshThreads;
   final CreateThreadCallback? onCreateThread;
   final JoinThreadCallback? onJoinThread;
@@ -43,6 +47,8 @@ class ThreadConversationHeader extends StatelessWidget {
         searchQuery: directMessageSearchQuery,
         onSearch: onSearchDirectMessages,
         onClearSearch: onClearDirectMessageSearch,
+        pinnedMessagesOpen: pinnedMessagesOpen,
+        onTogglePinnedMessages: onTogglePinnedMessages,
       );
     }
     return Container(
@@ -88,6 +94,14 @@ class ThreadConversationHeader extends StatelessWidget {
             ),
           ] else
             const Spacer(),
+          if (onTogglePinnedMessages != null)
+            _HeaderAction(
+              tooltip: pinnedMessagesOpen ? '고정된 메시지 닫기' : '고정된 메시지 보기',
+              onPressed: onTogglePinnedMessages,
+              icon: pinnedMessagesOpen
+                  ? Icons.push_pin
+                  : Icons.push_pin_outlined,
+            ),
           if (selected?.canCreatePublicThread == true) ...[
             _HeaderAction(
               tooltip: '스레드 새로고침',

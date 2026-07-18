@@ -50,6 +50,9 @@ extension DiscordAppControllerEvents on DiscordAppController {
         selectedChannelId: selectedChannelId,
         typingState: typingState,
         peopleState: peopleState,
+        pinnedMessagesState: channelChanged
+            ? const DiscordPinnedMessagesState()
+            : _state.pinnedMessagesState,
         messageState: channelChanged
             ? DiscordMessageState(
                 channelId: selectedChannelId,

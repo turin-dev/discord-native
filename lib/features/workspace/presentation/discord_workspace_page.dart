@@ -7,6 +7,7 @@ import 'package:collection/collection.dart';
 import 'package:discord_native/features/messages/domain/discord_message_state.dart';
 import 'package:discord_native/features/messages/domain/discord_typing_state.dart';
 import 'package:discord_native/features/messages/domain/discord_message_search_state.dart';
+import 'package:discord_native/features/messages/domain/discord_pinned_messages_state.dart';
 import 'package:discord_native/features/workspace/data/read_state_repository.dart';
 import 'package:discord_native/features/workspace/domain/discord_people_state.dart';
 import 'package:discord_native/features/workspace/domain/discord_permissions.dart';
@@ -70,6 +71,12 @@ class DiscordWorkspacePage extends StatefulWidget {
     this.onSearchMessages,
     this.onSelectSearchResult,
     this.onClearSearch,
+    this.pinnedMessagesState = const DiscordPinnedMessagesState(),
+    this.onTogglePinnedMessages,
+    this.onClosePinnedMessages,
+    this.onLoadMorePinnedMessages,
+    this.onRefreshPinnedMessages,
+    this.onSelectPinnedMessage,
     this.peopleErrorMessage,
     this.onOpenDirectMessage,
     this.onSendFriendRequest,
@@ -171,6 +178,12 @@ class DiscordWorkspacePage extends StatefulWidget {
   final SearchMessagesCallback? onSearchMessages;
   final SelectSearchResultCallback? onSelectSearchResult;
   final VoidCallback? onClearSearch;
+  final DiscordPinnedMessagesState pinnedMessagesState;
+  final VoidCallback? onTogglePinnedMessages;
+  final VoidCallback? onClosePinnedMessages;
+  final Future<void> Function()? onLoadMorePinnedMessages;
+  final Future<void> Function()? onRefreshPinnedMessages;
+  final MessageActionCallback? onSelectPinnedMessage;
   final String? peopleErrorMessage;
   final RelationshipActionCallback? onOpenDirectMessage;
   final SendFriendRequestCallback? onSendFriendRequest;
@@ -436,6 +449,11 @@ class DiscordWorkspacePage extends StatefulWidget {
                               ? (query) => onSearchMessages!(query, true)
                               : null,
                           onClearDirectMessageSearch: onClearSearch,
+                          pinnedMessagesOpen:
+                              pinnedMessagesState.channelId == channel?.id,
+                          onTogglePinnedMessages: channel == null
+                              ? null
+                              : onTogglePinnedMessages,
                         ),
                 ),
                 WorkspaceRightPanel(
@@ -454,6 +472,12 @@ class DiscordWorkspacePage extends StatefulWidget {
                   onAcceptFriendRequest: onAcceptFriendRequest,
                   onBlockRelationship: onBlockRelationship,
                   onRemoveRelationship: onRemoveRelationship,
+                  pinnedMessagesState: pinnedMessagesState,
+                  onSelectPinnedMessage: onSelectPinnedMessage,
+                  onClosePinnedMessages: onClosePinnedMessages,
+                  onLoadMorePinnedMessages: onLoadMorePinnedMessages,
+                  onRefreshPinnedMessages: onRefreshPinnedMessages,
+                  onUnpinMessage: canPinMessages ? onTogglePinned : null,
                 ),
               ],
             ),

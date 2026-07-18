@@ -64,6 +64,8 @@ class ConversationPanel extends StatefulWidget {
     required this.directMessageSearchQuery,
     required this.onSearchDirectMessages,
     required this.onClearDirectMessageSearch,
+    this.pinnedMessagesOpen = false,
+    this.onTogglePinnedMessages,
     super.key,
   });
 
@@ -97,6 +99,8 @@ class ConversationPanel extends StatefulWidget {
   final String directMessageSearchQuery;
   final Future<void> Function(String query)? onSearchDirectMessages;
   final VoidCallback? onClearDirectMessageSearch;
+  final bool pinnedMessagesOpen;
+  final VoidCallback? onTogglePinnedMessages;
 
   @override
   State<ConversationPanel> createState() => _ConversationPanelState();
@@ -240,6 +244,8 @@ class _ConversationPanelState extends State<ConversationPanel> {
           directMessageSearchQuery: widget.directMessageSearchQuery,
           onSearchDirectMessages: widget.onSearchDirectMessages,
           onClearDirectMessageSearch: widget.onClearDirectMessageSearch,
+          pinnedMessagesOpen: widget.pinnedMessagesOpen,
+          onTogglePinnedMessages: widget.onTogglePinnedMessages,
           onRefreshThreads: widget.onRefreshThreads,
           onCreateThread: widget.onCreateThread,
           onJoinThread: widget.onJoinThread,

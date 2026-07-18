@@ -258,6 +258,8 @@ class DirectMessageHeader extends StatelessWidget {
     this.searchQuery = '',
     this.onSearch,
     this.onClearSearch,
+    this.pinnedMessagesOpen = false,
+    this.onTogglePinnedMessages,
     super.key,
   });
 
@@ -265,6 +267,8 @@ class DirectMessageHeader extends StatelessWidget {
   final String searchQuery;
   final DirectMessageSearchCallback? onSearch;
   final VoidCallback? onClearSearch;
+  final bool pinnedMessagesOpen;
+  final VoidCallback? onTogglePinnedMessages;
 
   @override
   Widget build(BuildContext context) {
@@ -295,6 +299,18 @@ class DirectMessageHeader extends StatelessWidget {
               style: DiscordTextStyles.heading(context),
             ),
           ),
+          if (onTogglePinnedMessages != null)
+            IconButton(
+              key: const ValueKey('direct-message-pins-action'),
+              tooltip: pinnedMessagesOpen ? '고정된 메시지 닫기' : '고정된 메시지 보기',
+              onPressed: onTogglePinnedMessages,
+              icon: Icon(
+                pinnedMessagesOpen ? Icons.push_pin : Icons.push_pin_outlined,
+                color: pinnedMessagesOpen
+                    ? context.discordPalette.text
+                    : context.discordPalette.textMuted,
+              ),
+            ),
           if (onSearch != null)
             SizedBox(
               width: 220,

@@ -1,4 +1,5 @@
 import 'package:discord_native/features/messages/domain/discord_message_search_state.dart';
+import 'package:discord_native/features/messages/domain/discord_pinned_messages_state.dart';
 import 'package:discord_native/features/messages/domain/discord_message_state.dart';
 import 'package:discord_native/features/messages/domain/discord_typing_state.dart';
 import 'package:discord_native/features/voice/domain/discord_voice_ui_state.dart';
@@ -27,6 +28,7 @@ final class DiscordAppState {
     this.peopleErrorMessage,
     this.guildErrorMessage,
     this.searchState = const DiscordMessageSearchState(),
+    this.pinnedMessagesState = const DiscordPinnedMessagesState(),
     this.readStates = const {},
     this.voiceUiState = const DiscordVoiceUiState(),
     this.clientApiWarning,
@@ -45,6 +47,7 @@ final class DiscordAppState {
   final String? peopleErrorMessage;
   final String? guildErrorMessage;
   final DiscordMessageSearchState searchState;
+  final DiscordPinnedMessagesState pinnedMessagesState;
   final Map<String, DiscordReadState> readStates;
   final DiscordVoiceUiState voiceUiState;
   final String? clientApiWarning;
@@ -70,6 +73,7 @@ final class DiscordAppState {
     Object? peopleErrorMessage = _unset,
     Object? guildErrorMessage = _unset,
     DiscordMessageSearchState? searchState,
+    DiscordPinnedMessagesState? pinnedMessagesState,
     Map<String, DiscordReadState>? readStates,
     DiscordVoiceUiState? voiceUiState,
     Object? clientApiWarning = _unset,
@@ -94,6 +98,7 @@ final class DiscordAppState {
           ? this.guildErrorMessage
           : guildErrorMessage as String?,
       searchState: searchState ?? this.searchState,
+      pinnedMessagesState: pinnedMessagesState ?? this.pinnedMessagesState,
       readStates: Map.unmodifiable(readStates ?? this.readStates),
       voiceUiState: voiceUiState ?? this.voiceUiState,
       clientApiWarning: identical(clientApiWarning, _unset)
