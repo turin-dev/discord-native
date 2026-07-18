@@ -63,6 +63,43 @@ void main() {
       expect(state.channels.last.name, '프로젝트 방');
     });
 
+    test('READY users와 recipient_ids로 현대 DM 사용자를 해석한다', () {
+      final state = const DiscordWorkspaceState().payloadReceived({
+        'op': 0,
+        't': 'READY',
+        'd': {
+          'user': {'id': 'user-1', 'username': 'alice'},
+          'guilds': [],
+          'users': [
+            {'id': 'user-2', 'username': 'bob', 'global_name': 'Bob'},
+            {'id': 'user-3', 'username': 'carol'},
+          ],
+          'relationships': [
+            {'id': 'user-2', 'type': 1},
+          ],
+          'private_channels': [
+            {
+              'id': 'dm-1',
+              'type': 1,
+              'recipient_ids': ['user-2'],
+            },
+            {
+              'id': 'group-1',
+              'type': 3,
+              'recipient_ids': ['user-2', 'user-3'],
+            },
+          ],
+        },
+      });
+
+      final directMessage = state.channelById('dm-1')!;
+      final groupMessage = state.channelById('group-1')!;
+      expect(directMessage.name, 'Bob');
+      expect(directMessage.recipients.single.username, 'bob');
+      expect(groupMessage.name, 'Bob, carol');
+      expect(groupMessage.recipients, hasLength(2));
+    });
+
     test('GUILD_CREATE 채널을 position 순서로 저장한다', () {
       final state = const DiscordWorkspaceState().payloadReceived({
         'op': 0,

@@ -12,6 +12,7 @@ aliases: [Open Questions]
 
 - 일반 사용자 토큰 클라이언트는 Discord ToS 위반과 계정 정지 위험을 제거할 수 없다.
 - 친구 추가·수락·거절·취소·차단·해제·삭제는 구현됐지만 공개 API에 없는 비공식 relationship endpoint이므로 부계정 실기기 검증과 변경 모니터링이 남아 있다.
+- READY private channel은 현재 최상위 `users`와 `recipient_ids`를 결합하고 예전 embedded `recipients`도 허용한다. 이 payload shape는 공개 클라이언트 계약이 아니므로 변경 모니터링과 실제 계정 표본 검증이 계속 필요하다.
 - Gateway resume 실패 시 jitter와 close code별 재식별 정책을 보강해야 한다.
 - read state는 READY snapshot·`MESSAGE_ACK`·`CHANNEL_UNREAD_UPDATE` 수신과 역추적한 `/read-states/ack-bulk` 송신을 양방향 조정하지만 공개 계약이 아니므로 401·403·404 fallback과 변경 모니터링이 필요하다. 실패 시 unread는 로컬 상태를 유지하며 영구적인 100% 동기화를 보증하지 않는다.
 - Voice v8, UDP/RTP, Opus, AEAD와 DAVE E2EE 음성 경로 및 시작 시 입력·출력 장치 선택은 구현됐지만 실제 Discord 계정 2개를 사용한 장시간 통화, 통화 중 장치 hot swap, echo cancellation과 noise suppression 검증이 남아 있다.

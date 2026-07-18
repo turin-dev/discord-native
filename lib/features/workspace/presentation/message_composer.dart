@@ -16,7 +16,7 @@ class MessageComposer extends StatelessWidget {
     required this.onRemoveAttachment,
     required this.onCancelReply,
     required this.onSend,
-    required this.channelName,
+    required this.hintText,
     this.onPickExpression,
     this.onCreatePoll,
     super.key,
@@ -32,7 +32,7 @@ class MessageComposer extends StatelessWidget {
   final ValueChanged<DiscordUploadFile> onRemoveAttachment;
   final VoidCallback onCancelReply;
   final VoidCallback onSend;
-  final String channelName;
+  final String hintText;
   final VoidCallback? onPickExpression;
   final VoidCallback? onCreatePoll;
 
@@ -106,7 +106,7 @@ class MessageComposer extends StatelessWidget {
             minLines: 1,
             maxLines: 5,
             decoration: InputDecoration(
-              hintText: enabled ? '#$channelName에 메시지 보내기' : '채널 연결 대기 중',
+              hintText: enabled ? hintText : '채널 연결 대기 중',
               hintStyle: TextStyle(color: context.discordPalette.textFaint),
               filled: true,
               fillColor: context.discordPalette.input,

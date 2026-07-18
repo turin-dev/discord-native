@@ -92,15 +92,15 @@ final class DiscordPalette extends ThemeExtension<DiscordPalette> {
   );
 
   static const onyx = DiscordPalette(
-    window: Color(0xFF000000),
-    guildRail: Color(0xFF030304),
-    sidebar: Color(0xFF0A0A0C),
-    sidebarFooter: Color(0xFF050506),
-    chat: Color(0xFF070709),
-    input: Color(0xFF151518),
-    hover: Color(0xFF17171B),
-    selected: Color(0xFF222226),
-    divider: Color(0xFF1A1A1D),
+    window: Color(0xFF0A1E2E),
+    guildRail: Color(0xFF0C0C0C),
+    sidebar: Color(0xFF061027),
+    sidebarFooter: Color(0xFF071521),
+    chat: Color(0xFF050E23),
+    input: Color(0xFF04052B),
+    hover: Color(0xFF151C2D),
+    selected: Color(0xFF181F30),
+    divider: Color(0xFF071521),
     brand: Color(0xFF5865F2),
     brandHover: Color(0xFF4752C4),
     text: Color(0xFFF2F3F5),
@@ -242,6 +242,7 @@ abstract final class DiscordLayout {
   static const titleBarHeight = 32.0;
   static const guildRailWidth = 72.0;
   static const channelSidebarWidth = 240.0;
+  static const directMessagesSidebarWidth = 320.0;
   static const channelHeaderHeight = 48.0;
   static const rightPanelWidth = 240.0;
   static const userPanelHeight = 52.0;

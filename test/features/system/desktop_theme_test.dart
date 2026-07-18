@@ -56,6 +56,18 @@ void main() {
     expect(discordPalette(light).chat, const Color(0xFFFFFFFF));
     expect(discordPalette(ash).chat, isNot(discordPalette(dark).chat));
     expect(discordPalette(dark).chat, const Color(0xFF313338));
-    expect(discordPalette(onyx).chat, const Color(0xFF070709));
+    expect(discordPalette(onyx).chat, const Color(0xFF050E23));
+  });
+
+  test('Windows 시스템 다크 모드는 Discord Midnight palette를 사용한다', () {
+    final theme = createDesktopTheme(
+      const DesktopSettings.defaults(),
+      Brightness.dark,
+    );
+
+    expect(discordPalette(theme).window, const Color(0xFF0A1E2E));
+    expect(discordPalette(theme).sidebar, const Color(0xFF061027));
+    expect(discordPalette(theme).chat, const Color(0xFF050E23));
+    expect(discordPalette(theme).input, const Color(0xFF04052B));
   });
 }

@@ -265,7 +265,7 @@ class _ConversationPanelState extends State<ConversationPanel> {
             valueListenable: _replyTarget,
             builder: (context, replyTarget, _) => MessageComposer(
               controller: _composer,
-              channelName: widget.channel?.name ?? '메시지',
+              hintText: _composerHint(widget.channel),
               enabled:
                   widget.channel != null &&
                   widget.canSendMessages &&
@@ -350,6 +350,9 @@ class _MessageList extends StatelessWidget {
     }
     if (state.messages.isEmpty) {
       final selectedChannel = channel!;
+      if (selectedChannel.isPrivate) {
+        return _DirectMessageEmptyState(channel: selectedChannel);
+      }
       return Center(
         child: Column(
           mainAxisSize: MainAxisSize.min,
@@ -417,6 +420,64 @@ class _MessageList extends StatelessWidget {
           onDownloadAttachment: onDownloadAttachment,
         );
       },
+    );
+  }
+}
+
+String _composerHint(DiscordChannel? channel) {
+  if (channel == null) {
+    return '메시지 보내기';
+  }
+  return switch (channel.type) {
+    1 => '${channel.name}에게 메시지 보내기',
+    3 => '${channel.name}에 메시지 보내기',
+    _ => '#${channel.name}에 메시지 보내기',
+  };
+}
+
+class _DirectMessageEmptyState extends StatelessWidget {
+  const _DirectMessageEmptyState({required this.channel});
+
+  final DiscordChannel channel;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.all(24),
+      child: Align(
+        alignment: Alignment.bottomLeft,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            CircleAvatar(
+              radius: 34,
+              backgroundColor: context.discordPalette.input,
+              child: Icon(
+                channel.type == 3 ? Icons.group : Icons.person,
+                size: 38,
+                color: context.discordPalette.text,
+              ),
+            ),
+            const SizedBox(height: 16),
+            Text(
+              channel.name,
+              style: TextStyle(
+                color: context.discordPalette.text,
+                fontSize: 24,
+                fontWeight: FontWeight.w800,
+              ),
+            ),
+            const SizedBox(height: 6),
+            Text(
+              channel.type == 3
+                  ? '${channel.name} 그룹의 시작이에요.'
+                  : '${channel.name}님과 나눈 대화의 시작이에요.',
+              style: TextStyle(color: context.discordPalette.textMuted),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }

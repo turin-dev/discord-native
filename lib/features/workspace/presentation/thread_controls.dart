@@ -1,5 +1,6 @@
 import 'package:discord_native/features/workspace/domain/discord_workspace_state.dart';
 import 'package:discord_native/features/workspace/presentation/discord_design_tokens.dart';
+import 'package:discord_native/features/workspace/presentation/direct_messages_components.dart';
 import 'package:flutter/material.dart';
 
 typedef RefreshThreadsCallback = Future<void> Function(String parentChannelId);
@@ -30,6 +31,9 @@ class ThreadConversationHeader extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final selected = channel;
+    if (selected?.isPrivate == true) {
+      return DirectMessageHeader(channel: selected);
+    }
     return Container(
       height: DiscordLayout.channelHeaderHeight,
       padding: const EdgeInsets.symmetric(horizontal: 16),

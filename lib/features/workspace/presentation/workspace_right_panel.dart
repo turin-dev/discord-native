@@ -4,6 +4,7 @@ import 'package:discord_native/features/workspace/domain/discord_workspace_state
 import 'package:discord_native/features/workspace/presentation/message_search_panel.dart';
 import 'package:discord_native/features/workspace/presentation/discord_design_tokens.dart';
 import 'package:discord_native/features/workspace/presentation/discord_identity.dart';
+import 'package:discord_native/features/workspace/presentation/direct_messages_components.dart';
 import 'package:flutter/material.dart';
 
 typedef SendFriendRequestCallback = Future<void> Function(String username);
@@ -13,6 +14,8 @@ typedef RelationshipActionCallback =
 class WorkspaceRightPanel extends StatelessWidget {
   const WorkspaceRightPanel({
     required this.guild,
+    required this.channel,
+    required this.currentUser,
     required this.peopleState,
     required this.searchState,
     required this.channels,
@@ -29,6 +32,8 @@ class WorkspaceRightPanel extends StatelessWidget {
   });
 
   final DiscordGuild? guild;
+  final DiscordChannel? channel;
+  final DiscordUser? currentUser;
   final DiscordPeopleState peopleState;
   final DiscordMessageSearchState searchState;
   final List<DiscordChannel> channels;
@@ -45,6 +50,17 @@ class WorkspaceRightPanel extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final directMessages = guild?.isDirectMessages == true;
+    final directMessageChannel = channel;
+    if (directMessages && directMessageChannel?.type == 3) {
+      return DirectMessageMembersPanel(
+        channel: directMessageChannel!,
+        currentUser: currentUser,
+        peopleState: peopleState,
+      );
+    }
+    if (directMessages && directMessageChannel?.type == 1) {
+      return const SizedBox.shrink();
+    }
     final hasActiveSearch = searchState.query.trim().isNotEmpty;
     return DefaultTabController(
       key: ValueKey(

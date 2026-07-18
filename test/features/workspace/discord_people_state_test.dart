@@ -54,6 +54,32 @@ void main() {
       expect(state.friends.single.activityName, 'Flutter');
     });
 
+    test('READY users의 사용자를 recipient와 relationship ID에 결합한다', () {
+      final state = const DiscordPeopleState().payloadReceived({
+        'op': 0,
+        't': 'READY',
+        'd': {
+          'users': [
+            {'id': 'user-2', 'username': 'bob', 'global_name': 'Bob'},
+          ],
+          'relationships': [
+            {'id': 'user-2', 'type': 1},
+          ],
+          'private_channels': [
+            {
+              'id': 'dm-1',
+              'type': 1,
+              'recipient_ids': ['user-2'],
+            },
+          ],
+          'presences': [],
+        },
+      });
+
+      expect(state.friends.single.user.username, 'bob');
+      expect(state.friends.single.user.displayName, 'Bob');
+    });
+
     test('guild member와 PRESENCE_UPDATE를 불변 갱신한다', () {
       final initial = const DiscordPeopleState().payloadReceived({
         'op': 0,

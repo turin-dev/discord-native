@@ -1096,7 +1096,9 @@ void main() {
 
     expect(find.text('다이렉트 메시지'), findsWidgets);
     expect(find.text('bob'), findsWidgets);
-    expect(find.text('밥'), findsOneWidget);
+    await tester.tap(find.byKey(const ValueKey('direct-messages-friends')));
+    await tester.pumpAndSettle();
+    expect(find.text('밥'), findsWidgets);
     await tester.tap(find.byTooltip('메시지 보내기').last);
     await tester.pumpAndSettle();
     await tester.tap(find.byTooltip('친구 추가'));

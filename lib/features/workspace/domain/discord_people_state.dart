@@ -312,6 +312,17 @@ final class DiscordPeopleState {
 
   DiscordPeopleState _receiveReady(Map<String, Object?> data) {
     var knownUsers = <DiscordUser>[];
+    for (final item in _readList(data['users'])) {
+      final userData = _readMap(item, 'READY user');
+      final userId = _requiredString(userData['id'], 'READY user.id');
+      knownUsers = _upsertUser(
+        knownUsers,
+        DiscordUser.fromPartialJson(
+          userData,
+          fallback: _findUser(knownUsers, userId),
+        ),
+      );
+    }
     for (final channel in _readList(data['private_channels'])) {
       final channelData = _readMap(channel, 'private channel');
       for (final recipient in _readList(channelData['recipients'])) {
