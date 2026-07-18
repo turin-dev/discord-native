@@ -18,6 +18,7 @@ import 'package:discord_native/features/messages/domain/discord_pinned_messages_
 import 'package:discord_native/features/messages/domain/discord_message_state.dart';
 import 'package:discord_native/features/messages/domain/discord_typing_state.dart';
 import 'package:discord_native/core/network/discord_rest_client.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -504,6 +505,27 @@ void main() {
     );
     final messages = [
       DiscordMessage.fromJson({
+        'id': 'message-attachment-source',
+        'channel_id': 'channel-1',
+        'content': '',
+        'timestamp': '2026-07-18T14:00:00.000Z',
+        'author': {'id': 'user-2', 'username': 'bob'},
+        'attachments': [
+          {
+            'id': 'attachment-1',
+            'filename': 'X.gif',
+            'url':
+                'https://cdn.discordapp.com/attachments/channel-1/attachment-1/X.gif?signature=current',
+            'proxy_url':
+                'https://media.discordapp.net/attachments/channel-1/attachment-1/X.gif?signature=current&width=400',
+            'size': 1024,
+            'content_type': 'image/gif',
+            'width': 400,
+            'height': 225,
+          },
+        ],
+      }),
+      DiscordMessage.fromJson({
         'id': 'message-media',
         'channel_id': 'channel-1',
         'content':
@@ -547,6 +569,19 @@ void main() {
     expect(
       find.byKey(const ValueKey('discord-media-link-message-media-0')),
       findsOneWidget,
+    );
+    final mediaPreview = find.byKey(
+      const ValueKey('discord-media-link-message-media-0'),
+    );
+    final mediaImage = tester.widget<CachedNetworkImage>(
+      find.descendant(
+        of: mediaPreview,
+        matching: find.byType(CachedNetworkImage),
+      ),
+    );
+    expect(
+      mediaImage.imageUrl,
+      'https://media.discordapp.net/attachments/channel-1/attachment-1/X.gif?signature=current&width=400',
     );
     expect(
       find.textContaining('https://example.com/image.gif', findRichText: true),
