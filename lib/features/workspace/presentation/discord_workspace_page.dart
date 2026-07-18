@@ -429,6 +429,13 @@ class DiscordWorkspacePage extends StatefulWidget {
                           onStartThreadFromMessage: onStartThreadFromMessage,
                           onJoinThread: onJoinThread,
                           onSetThreadArchived: onSetThreadArchived,
+                          directMessageSearchQuery: searchState.query,
+                          onSearchDirectMessages:
+                              channel?.isPrivate == true &&
+                                  onSearchMessages != null
+                              ? (query) => onSearchMessages!(query, true)
+                              : null,
+                          onClearDirectMessageSearch: onClearSearch,
                         ),
                 ),
                 WorkspaceRightPanel(

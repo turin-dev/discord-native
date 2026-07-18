@@ -497,22 +497,35 @@ final class DiscordAppController {
     if (guildId == null || repository == null) {
       return;
     }
+    final selectedChannelId = _state.selectedChannelId;
+    final selectedChannel = selectedChannelId == null
+        ? null
+        : _state.workspace.channelById(selectedChannelId);
+    final directMessageChannelId =
+        guildId == discordDirectMessagesGuildId &&
+            selectedChannel?.isPrivate == true
+        ? selectedChannel!.id
+        : null;
+    final effectiveCurrentChannelOnly =
+        currentChannelOnly || directMessageChannelId != null;
     final normalized = query.trim();
     _update(
       _state.copyWith(
         searchState: DiscordMessageSearchState.loading(
           normalized,
-          currentChannelOnly: currentChannelOnly,
+          currentChannelOnly: effectiveCurrentChannelOnly,
         ),
       ),
     );
     try {
-      final result = await repository.searchGuildMessages(
-        guildId,
-        normalized,
-        channelId: currentChannelOnly ? _state.selectedChannelId : null,
+      final result = await _executeMessageSearch(
+        repository: repository,
+        guildId: guildId,
+        directMessageChannelId: directMessageChannelId,
+        query: normalized,
+        currentChannelOnly: effectiveCurrentChannelOnly,
       );
-      if (_state.searchState.query != normalized) {
+      if (!_isMessageSearchCurrent(normalized, directMessageChannelId)) {
         return;
       }
       _update(
@@ -522,12 +535,12 @@ final class DiscordAppController {
             query: result.query,
             totalResults: result.totalResults,
             messages: result.messages,
-            currentChannelOnly: currentChannelOnly,
+            currentChannelOnly: effectiveCurrentChannelOnly,
           ),
         ),
       );
     } on Object catch (error) {
-      if (_state.searchState.query == normalized) {
+      if (_isMessageSearchCurrent(normalized, directMessageChannelId)) {
         _update(
           _state.copyWith(
             searchState: _state.searchState.failed(_friendlyError(error)),
@@ -535,6 +548,29 @@ final class DiscordAppController {
         );
       }
     }
+  }
+
+  Future<DiscordMessageSearchResult> _executeMessageSearch({
+    required MessageRepository repository,
+    required String guildId,
+    required String? directMessageChannelId,
+    required String query,
+    required bool currentChannelOnly,
+  }) {
+    if (directMessageChannelId != null) {
+      return repository.searchChannelMessages(directMessageChannelId, query);
+    }
+    return repository.searchGuildMessages(
+      guildId,
+      query,
+      channelId: currentChannelOnly ? _state.selectedChannelId : null,
+    );
+  }
+
+  bool _isMessageSearchCurrent(String query, String? directMessageChannelId) {
+    return _state.searchState.query == query &&
+        (directMessageChannelId == null ||
+            _state.selectedChannelId == directMessageChannelId);
   }
 
   Future<void> selectSearchResult(DiscordMessage message) async {

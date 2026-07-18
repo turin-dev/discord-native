@@ -15,6 +15,9 @@ typedef SetThreadArchivedCallback =
 class ThreadConversationHeader extends StatelessWidget {
   const ThreadConversationHeader({
     required this.channel,
+    this.directMessageSearchQuery = '',
+    this.onSearchDirectMessages,
+    this.onClearDirectMessageSearch,
     this.onRefreshThreads,
     this.onCreateThread,
     this.onJoinThread,
@@ -23,6 +26,9 @@ class ThreadConversationHeader extends StatelessWidget {
   });
 
   final DiscordChannel? channel;
+  final String directMessageSearchQuery;
+  final DirectMessageSearchCallback? onSearchDirectMessages;
+  final VoidCallback? onClearDirectMessageSearch;
   final RefreshThreadsCallback? onRefreshThreads;
   final CreateThreadCallback? onCreateThread;
   final JoinThreadCallback? onJoinThread;
@@ -32,7 +38,12 @@ class ThreadConversationHeader extends StatelessWidget {
   Widget build(BuildContext context) {
     final selected = channel;
     if (selected?.isPrivate == true) {
-      return DirectMessageHeader(channel: selected);
+      return DirectMessageHeader(
+        channel: selected,
+        searchQuery: directMessageSearchQuery,
+        onSearch: onSearchDirectMessages,
+        onClearSearch: onClearDirectMessageSearch,
+      );
     }
     return Container(
       height: DiscordLayout.channelHeaderHeight,

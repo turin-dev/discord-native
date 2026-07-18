@@ -1265,11 +1265,19 @@ void main() {
       await pumpEventQueue();
 
       await controller.searchMessages('회의');
+      final result = controller.state.searchState.messages.single;
+      await controller.selectSearchResult(result);
 
       expect(messages.searchDirectMessageChannelId, 'dm-1');
       expect(messages.searchQuery, '회의');
       expect(controller.state.searchState.currentChannelOnly, isTrue);
       expect(controller.state.searchState.messages.single.channelId, 'dm-1');
+      expect(messages.aroundMessageId, 'message-dm-search');
+      expect(controller.state.messageState.channelId, 'dm-1');
+      expect(
+        controller.state.messageState.messages.single.id,
+        'message-dm-search',
+      );
     });
 
     test('친구 요청·수락·차단·삭제를 repository와 people state에 반영한다', () async {
@@ -1897,6 +1905,7 @@ final class _FakeMessageRepository implements MessageRepository {
     );
   }
 
+  @override
   Future<DiscordMessageSearchResult> searchChannelMessages(
     String channelId,
     String query, {

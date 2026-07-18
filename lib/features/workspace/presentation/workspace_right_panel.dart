@@ -51,6 +51,17 @@ class WorkspaceRightPanel extends StatelessWidget {
   Widget build(BuildContext context) {
     final directMessages = guild?.isDirectMessages == true;
     final directMessageChannel = channel;
+    final hasActiveSearch = searchState.query.trim().isNotEmpty;
+    if (directMessages && hasActiveSearch) {
+      return MessageSearchPanel(
+        state: searchState,
+        channels: channels,
+        onSearch: onSearch,
+        onSelectResult: onSelectResult,
+        onClear: onClear,
+        showChannelFilter: false,
+      );
+    }
     if (directMessages && directMessageChannel?.type == 3) {
       return DirectMessageMembersPanel(
         channel: directMessageChannel!,
@@ -61,7 +72,6 @@ class WorkspaceRightPanel extends StatelessWidget {
     if (directMessages && directMessageChannel?.type == 1) {
       return const SizedBox.shrink();
     }
-    final hasActiveSearch = searchState.query.trim().isNotEmpty;
     return DefaultTabController(
       key: ValueKey(
         'right-panel-${guild?.id}-${hasActiveSearch ? 'search' : 'default'}',

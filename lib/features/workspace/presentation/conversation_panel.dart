@@ -61,6 +61,9 @@ class ConversationPanel extends StatefulWidget {
     required this.onStartThreadFromMessage,
     required this.onJoinThread,
     required this.onSetThreadArchived,
+    required this.directMessageSearchQuery,
+    required this.onSearchDirectMessages,
+    required this.onClearDirectMessageSearch,
     super.key,
   });
 
@@ -91,6 +94,9 @@ class ConversationPanel extends StatefulWidget {
   final StartThreadFromMessageCallback? onStartThreadFromMessage;
   final JoinThreadCallback? onJoinThread;
   final SetThreadArchivedCallback? onSetThreadArchived;
+  final String directMessageSearchQuery;
+  final Future<void> Function(String query)? onSearchDirectMessages;
+  final VoidCallback? onClearDirectMessageSearch;
 
   @override
   State<ConversationPanel> createState() => _ConversationPanelState();
@@ -231,6 +237,9 @@ class _ConversationPanelState extends State<ConversationPanel> {
       children: [
         ThreadConversationHeader(
           channel: widget.channel,
+          directMessageSearchQuery: widget.directMessageSearchQuery,
+          onSearchDirectMessages: widget.onSearchDirectMessages,
+          onClearDirectMessageSearch: widget.onClearDirectMessageSearch,
           onRefreshThreads: widget.onRefreshThreads,
           onCreateThread: widget.onCreateThread,
           onJoinThread: widget.onJoinThread,

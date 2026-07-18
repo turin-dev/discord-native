@@ -10,6 +10,7 @@ import 'package:flutter/material.dart';
 
 typedef DirectMessageRelationshipCallback =
     Future<void> Function(DiscordRelationship relationship);
+typedef DirectMessageSearchCallback = Future<void> Function(String query);
 
 class DirectMessagesNavigation extends StatefulWidget {
   const DirectMessagesNavigation({
@@ -252,9 +253,18 @@ class _DirectMessageUnreadBadge extends StatelessWidget {
 }
 
 class DirectMessageHeader extends StatelessWidget {
-  const DirectMessageHeader({required this.channel, super.key});
+  const DirectMessageHeader({
+    required this.channel,
+    this.searchQuery = '',
+    this.onSearch,
+    this.onClearSearch,
+    super.key,
+  });
 
   final DiscordChannel? channel;
+  final String searchQuery;
+  final DirectMessageSearchCallback? onSearch;
+  final VoidCallback? onClearSearch;
 
   @override
   Widget build(BuildContext context) {
@@ -285,7 +295,92 @@ class DirectMessageHeader extends StatelessWidget {
               style: DiscordTextStyles.heading(context),
             ),
           ),
+          if (onSearch != null)
+            SizedBox(
+              width: 220,
+              child: _DirectMessageSearchBox(
+                query: searchQuery,
+                onSearch: onSearch!,
+                onClear: onClearSearch,
+              ),
+            ),
         ],
+      ),
+    );
+  }
+}
+
+class _DirectMessageSearchBox extends StatefulWidget {
+  const _DirectMessageSearchBox({
+    required this.query,
+    required this.onSearch,
+    required this.onClear,
+  });
+
+  final String query;
+  final DirectMessageSearchCallback onSearch;
+  final VoidCallback? onClear;
+
+  @override
+  State<_DirectMessageSearchBox> createState() =>
+      _DirectMessageSearchBoxState();
+}
+
+class _DirectMessageSearchBoxState extends State<_DirectMessageSearchBox> {
+  late final TextEditingController _controller;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = TextEditingController(text: widget.query);
+  }
+
+  @override
+  void didUpdateWidget(_DirectMessageSearchBox oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.query != widget.query && _controller.text != widget.query) {
+      _controller.text = widget.query;
+    }
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  Future<void> _submit() async {
+    final query = _controller.text.trim();
+    if (query.isNotEmpty) {
+      await widget.onSearch(query);
+    }
+  }
+
+  void _clear() {
+    _controller.clear();
+    widget.onClear?.call();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return TextField(
+      key: const ValueKey('direct-message-header-search'),
+      controller: _controller,
+      textInputAction: TextInputAction.search,
+      onSubmitted: (_) => unawaited(_submit()),
+      style: const TextStyle(fontSize: 12),
+      decoration: InputDecoration(
+        hintText: '검색하기',
+        isDense: true,
+        filled: true,
+        fillColor: context.discordPalette.input,
+        contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+        suffixIcon: IconButton(
+          tooltip: widget.query.isEmpty ? 'DM 메시지 검색' : 'DM 검색 지우기',
+          onPressed: widget.query.isEmpty ? _submit : _clear,
+          icon: Icon(widget.query.isEmpty ? Icons.search : Icons.close),
+          iconSize: 17,
+        ),
       ),
     );
   }
