@@ -19,11 +19,22 @@ class DiscordMessageContent extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final mediaLinks = _discordMediaLinks(message.markdownContent);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         if (message.displayContent.isNotEmpty)
-          DiscordMarkdownBody(data: message.markdownContent),
+          DiscordMarkdownBody(
+            data: _markdownWithMediaFileNames(
+              message.markdownContent,
+              mediaLinks,
+            ),
+          ),
+        for (var index = 0; index < mediaLinks.length; index += 1)
+          _DiscordMediaLinkPreview(
+            key: ValueKey('discord-media-link-${message.id}-$index'),
+            link: mediaLinks[index],
+          ),
         if (message.poll case final poll?)
           DiscordPollCard(
             key: ValueKey('poll-${message.id}'),
@@ -45,6 +56,115 @@ class DiscordMessageContent extends StatelessWidget {
       ],
     );
   }
+}
+
+final class _DiscordMediaLink {
+  const _DiscordMediaLink({
+    required this.start,
+    required this.end,
+    required this.uri,
+    required this.fileName,
+  });
+
+  final int start;
+  final int end;
+  final Uri uri;
+  final String fileName;
+}
+
+class _DiscordMediaLinkPreview extends StatelessWidget {
+  const _DiscordMediaLinkPreview({required this.link, super.key});
+
+  final _DiscordMediaLink link;
+
+  @override
+  Widget build(BuildContext context) {
+    final palette = context.discordPalette;
+    return Container(
+      constraints: const BoxConstraints(maxWidth: 400, maxHeight: 300),
+      margin: const EdgeInsets.only(top: 4),
+      clipBehavior: Clip.antiAlias,
+      decoration: BoxDecoration(borderRadius: BorderRadius.circular(4)),
+      child: CachedNetworkImage(
+        imageUrl: link.uri.toString(),
+        fit: BoxFit.contain,
+        placeholder: (_, _) => SizedBox(
+          width: 400,
+          height: 200,
+          child: ColoredBox(
+            color: palette.input,
+            child: const Center(child: CircularProgressIndicator()),
+          ),
+        ),
+        errorWidget: (_, _, _) => Text(
+          '이미지를 불러오지 못했습니다.',
+          style: TextStyle(color: palette.textMuted),
+        ),
+      ),
+    );
+  }
+}
+
+List<_DiscordMediaLink> _discordMediaLinks(String content) {
+  final matches = RegExp(
+    r'https://(?:cdn\.discordapp\.com|media\.discordapp\.net)/[^\s<>()]+',
+    caseSensitive: false,
+  ).allMatches(content);
+  return List.unmodifiable([
+    for (final match in matches)
+      if (_discordImageUri(match.group(0)) case final uri?)
+        _DiscordMediaLink(
+          start: match.start,
+          end: match.end,
+          uri: uri,
+          fileName: _mediaFileName(uri),
+        ),
+  ]);
+}
+
+Uri? _discordImageUri(String? value) {
+  final uri = value == null ? null : Uri.tryParse(value);
+  if (uri == null || uri.scheme != 'https') {
+    return null;
+  }
+  const hosts = {'cdn.discordapp.com', 'media.discordapp.net'};
+  const roots = {'attachments', 'ephemeral-attachments'};
+  const extensions = {'png', 'jpg', 'jpeg', 'gif', 'webp', 'avif'};
+  final segments = uri.pathSegments;
+  final extension = segments.isEmpty
+      ? ''
+      : segments.last.split('.').last.toLowerCase();
+  return hosts.contains(uri.host.toLowerCase()) &&
+          segments.isNotEmpty &&
+          roots.contains(segments.first) &&
+          extensions.contains(extension)
+      ? uri
+      : null;
+}
+
+String _mediaFileName(Uri uri) {
+  final encoded = uri.pathSegments.isEmpty ? '이미지' : uri.pathSegments.last;
+  final decoded = Uri.decodeComponent(encoded);
+  return decoded.replaceAll(RegExp(r'[\[\]]'), '');
+}
+
+String _markdownWithMediaFileNames(
+  String content,
+  List<_DiscordMediaLink> links,
+) {
+  if (links.isEmpty) {
+    return content;
+  }
+  final output = StringBuffer();
+  var cursor = 0;
+  for (final link in links) {
+    output
+      ..write(content.substring(cursor, link.start))
+      ..write('[${link.fileName}](${link.uri})');
+    cursor = link.end;
+  }
+  output.write(content.substring(cursor));
+  return output.toString();
 }
 
 class DiscordPollCard extends StatefulWidget {
