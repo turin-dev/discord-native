@@ -13,6 +13,8 @@ aliases: [Open Questions]
 - 일반 사용자 토큰 클라이언트는 Discord ToS 위반과 계정 정지 위험을 제거할 수 없다.
 - 친구 추가·수락·거절·취소·차단·해제·삭제는 구현됐지만 공개 API에 없는 비공식 relationship endpoint이므로 부계정 실기기 검증과 변경 모니터링이 남아 있다.
 - READY private channel은 현재 최상위 `users`와 `recipient_ids`를 결합하고 예전 embedded `recipients`도 허용한다. 이 payload shape는 공개 클라이언트 계약이 아니므로 변경 모니터링과 실제 계정 표본 검증이 계속 필요하다.
+- desktop READY guild의 nested `properties`를 top-level payload와 병합한다. 이 shape도 공개 Gateway 계약이 아니므로 실제 이름·아이콘이 fallback으로 회귀하지 않는지 변경 모니터링이 필요하다.
+- 만료된 Discord attachment 직링크는 계정 전체 로컬 캐시에서 같은 path의 signed proxy를 재사용한다. 원본 attachment가 캐시에 없거나 proxy까지 만료된 경우 공식 클라이언트의 자체 media cache와 같은 복원율은 보장할 수 없다.
 - DM 메시지 검색은 비공개 `/channels/{channel.id}/messages/search`를 사용한다. endpoint shape, 색인 준비 응답과 검색 결과 구조는 공개 계약이 아니므로 부계정 실기기 검증과 변경 모니터링이 필요하다.
 - Gateway resume 실패 시 jitter와 close code별 재식별 정책을 보강해야 한다.
 - read state는 READY snapshot·`MESSAGE_ACK`·`CHANNEL_UNREAD_UPDATE` 수신과 역추적한 `/read-states/ack-bulk` 송신을 양방향 조정하지만 공개 계약이 아니므로 401·403·404 fallback과 변경 모니터링이 필요하다. 실패 시 unread는 로컬 상태를 유지하며 영구적인 100% 동기화를 보증하지 않는다.

@@ -35,7 +35,7 @@ Windows 기본 환경에서는 `Segoe UI`를 사용한다. 본문은 14px, chann
 
 ## Interaction
 
-- Guild는 48px 원형 icon이며 선택 시 radius가 줄고 왼쪽 흰색 indicator가 길어진다.
+- Guild는 48px 원형 icon이며 desktop READY의 실제 icon을 우선하고 누락되면 deterministic fallback identity를 사용한다. 선택 시 radius가 줄고 왼쪽 흰색 indicator가 길어진다.
 - Channel row는 34px다. 선택 상태는 고정 배경, unread는 굵은 label과 badge로 표현한다.
 - DM row는 44px이며 1:1 avatar 또는 group fallback avatar, display name과 unread badge를 표시한다. DM header와 composer 문구에는 guild channel용 `#`를 붙이지 않는다.
 - DM header의 검색 입력은 현재 private channel만 조회한다. 검색 중에는 1:1의 닫힌 우측 영역 또는 group DM 멤버 panel 자리에 240px 결과 panel을 열고, 결과 선택 시 해당 message 주변 대화로 이동한다.
@@ -45,6 +45,7 @@ Windows 기본 환경에서는 `Segoe UI`를 사용한다. 본문은 14px, chann
 - channel context action으로 고정한 channel은 별도 상단 section에 표시되고 설정에 저장된다.
 - Message action은 hover에서만 보이되, 메뉴가 열린 동안 anchor가 제거되지 않아야 한다.
 - 고정 메시지 panel은 열린 동안 검색·member surface보다 우선한다. panel을 닫으면 활성 검색 결과 또는 guild member·group DM member surface로 돌아간다.
+- Discord attachment 직링크는 raw URL을 노출하지 않고 filename 링크와 최대 400×300 inline media를 표시한다. signed proxy를 찾지 못하거나 만료되면 오류 상태가 메시지 높이를 과도하게 점유하지 않아야 한다.
 - 사용자에게 영향을 주는 기능은 tooltip과 keyboard focus를 제공한다. 장식 icon은 action처럼 보이지 않게 한다.
 
 ## Reference preview

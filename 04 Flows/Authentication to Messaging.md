@@ -14,7 +14,7 @@ aliases: [Authentication to Messaging]
 2. 토큰이 없거나 손상됐으면 위험 고지가 포함된 로그인 화면을 표시한다.
 3. Gateway 연결 후 HELLO를 받으면 IDENTIFY를 보내고 heartbeat를 예약한다.
 4. 연결 손실 시 세션이 유효하면 RESUME하고, 그렇지 않으면 backoff 후 새 IDENTIFY를 수행한다.
-5. READY/GUILD/CHANNEL dispatch가 workspace 상태를 구성한다.
+5. READY/GUILD/CHANNEL dispatch가 workspace 상태를 구성한다. desktop READY guild의 nested `properties`는 top-level 값과 병합해 실제 이름·아이콘을 복원한다.
 6. READY private channel과 relationship이 있으면 synthetic `@me` guild를 만들고 첫 DM을 선택한다. 현대 payload의 최상위 `users`와 `recipient_ids`를 ID로 결합하며 예전 embedded `recipients`도 허용한다.
 7. `@me`에서는 320px DM navigation과 친구 홈을 표시한다. 1:1 DM은 participant panel 없이 열고 group DM은 recipient와 현재 사용자를 결합한 멤버 panel을 표시한다.
 8. guild 선택 시 첫 text channel을 선택하고 REST로 최근 메시지 50개를 읽는다.
@@ -31,8 +31,8 @@ aliases: [Authentication to Messaging]
 19. TYPING_START는 자신을 제외하고 표시하며 새 message 또는 10초 만료 시 제거한다.
 20. 파일 선택 결과는 MIME type과 바이트로 정규화되며, 최대 10개·총 25 MiB 검증 후 `payload_json`과 `files[n]` multipart 요청으로 전송된다.
 21. 첨부가 포함된 답장은 동일 multipart payload에 message reference를 보존한다.
-22. 수신 message의 markdown, 코드, spoiler, mention, custom emoji, embed와 sticker는 rich content renderer로 전달된다.
-23. 첨부 이미지는 캐시 미리보기를 표시하고 다운로드는 native save dialog 뒤 Discord CDN HTTPS allowlist를 검증한다.
+22. 수신 message의 markdown, 코드, spoiler, mention, custom emoji, embed와 sticker는 rich content renderer로 전달된다. Discord attachment 직링크는 filename과 최대 400×300 inline media로 변환된다.
+23. 첨부 이미지는 캐시 미리보기를 표시한다. 만료된 직링크는 계정 전체 메시지 캐시에서 attachment path가 같은 signed proxy를 복원하며, 다운로드는 native save dialog 뒤 Discord CDN HTTPS allowlist를 검증한다.
 24. active·archived thread 목록은 parent channel 아래에 병합되고 Gateway THREAD dispatch로 갱신된다.
 25. 사용자는 공개 thread를 만들거나 메시지에서 시작하고, thread 참여와 보관·해제를 수행한다.
 26. guild 검색 panel은 guild 전체 또는 현재 channel을 검색한다. DM header 검색은 선택한 private channel만 조회하고 활성화된 동안 멤버 panel을 검색 결과 panel로 교체한다. 색인 준비 중이면 서버가 지정한 시간 뒤 재시도한다.

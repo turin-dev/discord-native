@@ -19,8 +19,10 @@ aliases: [Change Log]
 - private channel 검색 endpoint와 guild 검색 endpoint를 repository·controller에서 분리하고 검색 경쟁 시 DM channel scope 보존
 - guild·DM header의 실제 고정 메시지 action, 240px cursor pagination panel, message 이동·해제 구현
 - 공개 Message Pin 목록 API와 `CHANNEL_PINS_UPDATE`를 연결하고 channel 전환 뒤 늦은 응답·mutation이 새 channel을 오염시키지 않도록 보정
-- analyzer 0건, 374개 테스트와 80.93% line coverage, AOT symbol 분리·icon subset Windows Release build와 Inno Setup installer 검증
-- 현재 소스 로컬 측정에서 시작 0.249초·메모리 164.68MB·설치 크기 59.33MB는 기준을 통과하고 유휴 CPU 5.25%는 0.5% 기준을 초과
+- desktop READY nested guild `properties`를 복원해 실제 guild 이름·아이콘을 표시
+- Discord CDN attachment 직링크를 filename과 inline media로 렌더링하고 계정 전체 cache의 signed proxy를 path 기준으로 재사용
+- analyzer 0건, 377개 테스트와 81.11% line coverage, AOT symbol 분리·icon subset Windows Release build와 Inno Setup installer 검증
+- 현재 소스 로컬 측정에서 시작 0.283초·설치 크기 59.34MB는 기준을 통과하고 메모리 218.62MB·유휴 CPU 5.5%는 각각 200MB·0.5% 기준을 초과
 - Windows 전역 F1–F12 Push-to-Talk press/release 감지와 active PTT 음성 엔진 전달 구현
 - 전역 PTT 활성화, 단축키 선택과 0–2000ms release delay 설정·secure storage 영속화 구현
 - active PTT 음성 세션에서만 선택한 단일 virtual key를 확인하고, 대기 중에는 꺼지는 `GetAsyncKeyState` polling 경계 구현
