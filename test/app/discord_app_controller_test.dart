@@ -1406,6 +1406,116 @@ void main() {
       expect(controller.state.pinnedMessagesState.isOpen, isFalse);
     });
 
+    test('CHANNEL_PINS_UPDATE를 받으면 열린 pin panel을 새로고침한다', () async {
+      final original = _messagePin('message-pin-1', '기존 고정 메시지');
+      final updated = _messagePin('message-pin-2', '다른 기기에서 고정');
+      final messages = _FakeMessageRepository(
+        pinnedPages: [
+          DiscordMessagePinsPage(pins: [original], hasMore: false),
+          DiscordMessagePinsPage(pins: [updated], hasMore: false),
+        ],
+      );
+      controller = DiscordAppController(
+        tokenRepository: tokens,
+        gateway: gateway,
+        messageRepositoryFactory: (_) => messages,
+      );
+      await controller.initialize();
+      await controller.connect('manual.token');
+      gateway.emitEvent({
+        'op': 0,
+        't': 'GUILD_CREATE',
+        'd': {
+          'id': 'guild-1',
+          'name': '개발 서버',
+          'channels': [
+            {
+              'id': 'channel-1',
+              'guild_id': 'guild-1',
+              'name': 'general',
+              'type': 0,
+              'position': 0,
+            },
+          ],
+        },
+      });
+      await pumpEventQueue();
+      await controller.openPinnedMessages();
+
+      gateway.emitEvent({
+        'op': 0,
+        't': 'CHANNEL_PINS_UPDATE',
+        'd': {
+          'channel_id': 'channel-1',
+          'last_pin_timestamp': '2026-07-18T12:00:00.000Z',
+        },
+      });
+      await pumpEventQueue();
+
+      expect(messages.pinnedChannelIds, ['channel-1', 'channel-1']);
+      expect(
+        controller.state.pinnedMessagesState.pins.single.message.id,
+        'message-pin-2',
+      );
+    });
+
+    test('pin 변경 대기 중 채널을 바꾸면 새 채널 panel을 열지 않는다', () async {
+      final pendingSetPinned = Completer<void>();
+      final messages = _FakeMessageRepository(
+        pendingSetPinned: pendingSetPinned,
+        pinnedPages: [
+          DiscordMessagePinsPage(
+            pins: [_messagePin('message-pin-1', '기존 고정 메시지')],
+            hasMore: false,
+          ),
+          DiscordMessagePinsPage(pins: const [], hasMore: false),
+        ],
+      );
+      controller = DiscordAppController(
+        tokenRepository: tokens,
+        gateway: gateway,
+        messageRepositoryFactory: (_) => messages,
+      );
+      await controller.initialize();
+      await controller.connect('manual.token');
+      gateway.emitEvent({
+        'op': 0,
+        't': 'GUILD_CREATE',
+        'd': {
+          'id': 'guild-1',
+          'name': '개발 서버',
+          'channels': [
+            {
+              'id': 'channel-1',
+              'guild_id': 'guild-1',
+              'name': 'general',
+              'type': 0,
+              'position': 0,
+            },
+            {
+              'id': 'channel-2',
+              'guild_id': 'guild-1',
+              'name': 'random',
+              'type': 0,
+              'position': 1,
+            },
+          ],
+        },
+      });
+      await pumpEventQueue();
+      await controller.openPinnedMessages();
+      final message = controller.state.messageState.messages.single;
+
+      final pinning = controller.togglePinned(message);
+      await pumpEventQueue();
+      controller.selectChannel('channel-2');
+      pendingSetPinned.complete();
+      await pinning;
+
+      expect(messages.pinnedChannelIds, ['channel-1']);
+      expect(controller.state.pinnedMessagesState.isOpen, isFalse);
+    });
+
     test('친구 요청·수락·차단·삭제를 repository와 people state에 반영한다', () async {
       final relationships = _FakeRelationshipRepository();
       controller = DiscordAppController(
@@ -1791,18 +1901,35 @@ DiscordScheduledEvent _event(
   );
 }
 
+DiscordMessagePin _messagePin(String id, String content) {
+  return DiscordMessagePin(
+    pinnedAt: DateTime.utc(2026, 7, 18, 11),
+    message: DiscordMessage(
+      id: id,
+      channelId: 'channel-1',
+      content: content,
+      authorId: 'user-1',
+      authorName: 'alice',
+      timestamp: DateTime.utc(2026, 7, 18, 10),
+      pinned: true,
+    ),
+  );
+}
+
 final class _FakeMessageRepository implements MessageRepository {
   _FakeMessageRepository({
     this.initialMessages,
     this.olderMessages = const [],
     List<DiscordMessagePinsPage> pinnedPages = const [],
     this.pendingPinnedPage,
+    this.pendingSetPinned,
   }) : _pinnedPages = List.unmodifiable(pinnedPages);
 
   final List<DiscordMessage>? initialMessages;
   final List<DiscordMessage> olderMessages;
   List<DiscordMessagePinsPage> _pinnedPages;
   final Completer<DiscordMessagePinsPage>? pendingPinnedPage;
+  final Completer<void>? pendingSetPinned;
   String? sentContent;
   String? repliedToMessageId;
   String? addedReaction;
@@ -1819,6 +1946,7 @@ final class _FakeMessageRepository implements MessageRepository {
   String? beforeMessageId;
   String? fetchedChannelId;
   List<DateTime?> pinnedBefore = const [];
+  List<String> pinnedChannelIds = const [];
   List<String> sentStickerIds = const [];
   String? votedMessageId;
   Set<int>? votedAnswerIds;
@@ -1884,6 +2012,7 @@ final class _FakeMessageRepository implements MessageRepository {
     DateTime? before,
     int limit = 50,
   }) async {
+    pinnedChannelIds = List.unmodifiable([...pinnedChannelIds, channelId]);
     pinnedBefore = List.unmodifiable([...pinnedBefore, before]);
     if (pendingPinnedPage case final pending?) {
       return pending.future;
@@ -2013,6 +2142,7 @@ final class _FakeMessageRepository implements MessageRepository {
     String messageId,
     bool pinned,
   ) async {
+    await pendingSetPinned?.future;
     pinnedValue = pinned;
   }
 
