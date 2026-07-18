@@ -1234,6 +1234,44 @@ void main() {
       );
     });
 
+    test('DM 메시지 검색은 선택한 private channel 범위로 제한한다', () async {
+      final messages = _FakeMessageRepository();
+      controller = DiscordAppController(
+        tokenRepository: tokens,
+        gateway: gateway,
+        messageRepositoryFactory: (_) => messages,
+      );
+      await controller.initialize();
+      await controller.connect('manual.token');
+      gateway.emitEvent({
+        'op': 0,
+        't': 'READY',
+        'd': {
+          'user': {'id': 'user-1', 'username': 'alice'},
+          'guilds': [],
+          'relationships': [],
+          'presences': [],
+          'private_channels': [
+            {
+              'id': 'dm-1',
+              'type': 1,
+              'recipients': [
+                {'id': 'user-2', 'username': 'bob'},
+              ],
+            },
+          ],
+        },
+      });
+      await pumpEventQueue();
+
+      await controller.searchMessages('회의');
+
+      expect(messages.searchDirectMessageChannelId, 'dm-1');
+      expect(messages.searchQuery, '회의');
+      expect(controller.state.searchState.currentChannelOnly, isTrue);
+      expect(controller.state.searchState.messages.single.channelId, 'dm-1');
+    });
+
     test('친구 요청·수락·차단·삭제를 repository와 people state에 반영한다', () async {
       final relationships = _FakeRelationshipRepository();
       controller = DiscordAppController(
@@ -1632,6 +1670,7 @@ final class _FakeMessageRepository implements MessageRepository {
   String? attachmentReplyTargetId;
   String? searchQuery;
   String? searchChannelId;
+  String? searchDirectMessageChannelId;
   String? aroundMessageId;
   String? editedContent;
   String? deletedMessageId;
@@ -1855,6 +1894,30 @@ final class _FakeMessageRepository implements MessageRepository {
           name: '검색된 스레드',
         ),
       ],
+    );
+  }
+
+  Future<DiscordMessageSearchResult> searchChannelMessages(
+    String channelId,
+    String query, {
+    int offset = 0,
+  }) async {
+    searchQuery = query;
+    searchDirectMessageChannelId = channelId;
+    return DiscordMessageSearchResult(
+      query: query,
+      totalResults: 1,
+      messages: [
+        DiscordMessage(
+          id: 'message-dm-search',
+          channelId: channelId,
+          content: 'DM 검색 결과',
+          authorId: 'user-2',
+          authorName: 'bob',
+          timestamp: DateTime.utc(2026, 7, 18, 10, 3),
+        ),
+      ],
+      threads: const [],
     );
   }
 

@@ -367,6 +367,41 @@ void main() {
       expect(result.threads.single.joined, isTrue);
     });
 
+    test('DM 검색은 선택한 private channel endpoint만 조회한다', () async {
+      final api = _FakeDiscordRestApi(
+        getResponse: {
+          'total_results': 1,
+          'messages': [
+            [
+              {
+                'id': 'message-dm-search',
+                'channel_id': 'dm-1',
+                'content': '다이렉트 메시지 검색 결과',
+                'timestamp': '2026-07-18T10:04:00.000Z',
+                'author': {'id': 'user-2', 'username': 'bob'},
+                'attachments': [],
+              },
+            ],
+          ],
+        },
+      );
+      final repository = DiscordMessageRepository(api);
+
+      final result = await repository.searchChannelMessages('dm-1', '  회의  ');
+
+      expect(api.lastPath, '/channels/dm-1/messages/search');
+      expect(api.lastQuery, {
+        'content': '회의',
+        'limit': 25,
+        'offset': 0,
+        'sort_by': 'relevance',
+        'sort_order': 'desc',
+      });
+      expect(result.query, '회의');
+      expect(result.messages.single.id, 'message-dm-search');
+      expect(result.threads, isEmpty);
+    });
+
     test('검색 index 202 본문은 retry_after 이후 재시도한다', () async {
       final api = _FakeDiscordRestApi(
         getResponses: [

@@ -1,4 +1,5 @@
 import 'package:discord_native/features/messages/domain/discord_message_state.dart';
+import 'package:discord_native/features/messages/domain/discord_message_search_state.dart';
 import 'package:discord_native/features/system/domain/desktop_settings.dart';
 import 'package:discord_native/features/system/presentation/desktop_theme.dart';
 import 'package:discord_native/features/workspace/domain/discord_people_state.dart';
@@ -111,6 +112,86 @@ void main() {
 
     expect(find.text('멤버 — 2'), findsNothing);
     expect(find.byKey(const ValueKey('direct-message-header')), findsOneWidget);
+  });
+
+  testWidgets('DM header 검색은 현재 대화만 검색한다', (tester) async {
+    await tester.binding.setSurfaceSize(const Size(1280, 720));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+    String? searchedQuery;
+    bool? searchedCurrentChannelOnly;
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: DiscordWorkspacePage(
+          state: const DiscordWorkspaceState().payloadReceived(_readyPayload()),
+          peopleState: const DiscordPeopleState().payloadReceived(
+            _readyPayload(),
+          ),
+          selectedGuildId: discordDirectMessagesGuildId,
+          selectedChannelId: 'group-1',
+          connectionLabel: '연결됨',
+          onSelectGuild: (_) {},
+          onSelectChannel: (_) {},
+          onSearchMessages: (query, currentChannelOnly) async {
+            searchedQuery = query;
+            searchedCurrentChannelOnly = currentChannelOnly;
+          },
+          onLogout: () {},
+        ),
+      ),
+    );
+
+    await tester.enterText(
+      find.byKey(const ValueKey('direct-message-header-search')),
+      ' 회의 ',
+    );
+    await tester.testTextInput.receiveAction(TextInputAction.search);
+    await tester.pump();
+
+    expect(searchedQuery, '회의');
+    expect(searchedCurrentChannelOnly, isTrue);
+  });
+
+  testWidgets('활성 DM 검색은 group member panel을 결과로 교체한다', (tester) async {
+    await tester.binding.setSurfaceSize(const Size(1280, 720));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+    final result = DiscordMessage(
+      id: 'message-search',
+      channelId: 'group-1',
+      content: '회의 검색 결과',
+      authorId: 'user-2',
+      authorName: 'bob',
+      timestamp: DateTime.utc(2026, 7, 18, 10),
+    );
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: DiscordWorkspacePage(
+          state: const DiscordWorkspaceState().payloadReceived(_readyPayload()),
+          peopleState: const DiscordPeopleState().payloadReceived(
+            _readyPayload(),
+          ),
+          searchState: DiscordMessageSearchState.loaded(
+            query: '회의',
+            totalResults: 1,
+            messages: [result],
+            currentChannelOnly: true,
+          ),
+          selectedGuildId: discordDirectMessagesGuildId,
+          selectedChannelId: 'group-1',
+          connectionLabel: '연결됨',
+          onSelectGuild: (_) {},
+          onSelectChannel: (_) {},
+          onSearchMessages: (_, _) async {},
+          onClearSearch: () {},
+          onLogout: () {},
+        ),
+      ),
+    );
+
+    expect(find.text('회의 검색 결과'), findsOneWidget);
+    expect(find.text('멤버 — 3'), findsNothing);
+    expect(find.byKey(const ValueKey('current-channel-only')), findsNothing);
   });
 }
 
