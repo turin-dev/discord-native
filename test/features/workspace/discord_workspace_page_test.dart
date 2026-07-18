@@ -484,6 +484,80 @@ void main() {
     expect(find.text('비밀'), findsOneWidget);
   });
 
+  testWidgets('Discord CDN image link를 filename과 inline media로 렌더링한다', (
+    tester,
+  ) async {
+    await tester.binding.setSurfaceSize(const Size(1280, 720));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+
+    final state = DiscordWorkspaceState.fromCollections(
+      guilds: const [DiscordGuild(id: 'guild-1', name: '개발 서버')],
+      channels: const [
+        DiscordChannel(
+          id: 'channel-1',
+          guildId: 'guild-1',
+          name: 'general',
+          type: 0,
+          position: 0,
+        ),
+      ],
+    );
+    final messages = [
+      DiscordMessage.fromJson({
+        'id': 'message-media',
+        'channel_id': 'channel-1',
+        'content':
+            '<@user-2> https://cdn.discordapp.com/attachments/channel-1/attachment-1/X.gif',
+        'timestamp': '2026-07-18T14:01:00.000Z',
+        'author': {'id': 'user-1', 'username': 'alice'},
+        'mentions': [
+          {'id': 'user-2', 'username': 'bob', 'global_name': '밥'},
+        ],
+      }),
+      DiscordMessage.fromJson({
+        'id': 'message-external',
+        'channel_id': 'channel-1',
+        'content': 'https://example.com/image.gif',
+        'timestamp': '2026-07-18T14:02:00.000Z',
+        'author': {'id': 'user-1', 'username': 'alice'},
+      }),
+    ];
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: DiscordWorkspacePage(
+          state: state,
+          messageState: DiscordMessageState.loaded('channel-1', messages),
+          selectedGuildId: 'guild-1',
+          selectedChannelId: 'channel-1',
+          connectionLabel: '연결됨',
+          onSelectGuild: (_) {},
+          onSelectChannel: (_) {},
+          onLogout: () {},
+        ),
+      ),
+    );
+
+    expect(find.textContaining('@밥', findRichText: true), findsWidgets);
+    expect(find.textContaining('X.gif', findRichText: true), findsWidgets);
+    expect(
+      find.textContaining('https://cdn.discordapp.com', findRichText: true),
+      findsNothing,
+    );
+    expect(
+      find.byKey(const ValueKey('discord-media-link-message-media-0')),
+      findsOneWidget,
+    );
+    expect(
+      find.textContaining('https://example.com/image.gif', findRichText: true),
+      findsWidgets,
+    );
+    expect(
+      find.byKey(const ValueKey('discord-media-link-message-external-0')),
+      findsNothing,
+    );
+  });
+
   testWidgets('파일을 선택하고 multipart 전송 callback으로 전달한다', (tester) async {
     await tester.binding.setSurfaceSize(const Size(1280, 720));
     addTearDown(() => tester.binding.setSurfaceSize(null));

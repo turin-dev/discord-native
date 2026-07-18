@@ -19,6 +19,29 @@ void main() {
       expect(state.guilds.single.name, '첫 서버');
     });
 
+    test('desktop READY guild properties에서 이름과 icon을 읽는다', () {
+      final state = const DiscordWorkspaceState().payloadReceived({
+        'op': 0,
+        't': 'READY',
+        'd': {
+          'user': {'id': 'user-1', 'username': 'native-user'},
+          'guilds': [
+            {
+              'id': 'guild-1',
+              'properties': {
+                'id': 'guild-1',
+                'name': '실제 서버',
+                'icon': 'a_icon-hash',
+              },
+            },
+          ],
+        },
+      });
+
+      expect(state.guilds.single.name, '실제 서버');
+      expect(state.guilds.single.iconHash, 'a_icon-hash');
+    });
+
     test('READY의 1:1·group DM을 synthetic guild 채널로 구성한다', () {
       final state = const DiscordWorkspaceState().payloadReceived({
         'op': 0,
