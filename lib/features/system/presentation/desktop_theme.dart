@@ -59,7 +59,7 @@ DiscordPalette _palette(DesktopThemeMode mode, Brightness brightness) {
     DesktopThemeMode.system =>
       brightness == Brightness.light
           ? DiscordPalette.light
-          : DiscordPalette.dark,
+          : DiscordPalette.onyx,
     DesktopThemeMode.light => DiscordPalette.light,
     DesktopThemeMode.ash => DiscordPalette.ash,
     DesktopThemeMode.dark => DiscordPalette.dark,

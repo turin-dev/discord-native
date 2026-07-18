@@ -12,6 +12,7 @@ import 'package:discord_native/features/workspace/presentation/workspace_voice_c
 import 'package:discord_native/features/workspace/presentation/workspace_user_controls.dart';
 import 'package:discord_native/features/workspace/presentation/discord_design_tokens.dart';
 import 'package:discord_native/features/workspace/presentation/discord_identity.dart';
+import 'package:discord_native/features/workspace/presentation/direct_messages_components.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_webrtc/flutter_webrtc.dart';
 
@@ -147,6 +148,8 @@ class ChannelSidebar extends StatelessWidget {
     this.density = DesktopDisplayDensity.defaultMode,
     this.pinnedChannelIds = const {},
     this.onToggleChannelPinned,
+    this.directMessagesHomeSelected = false,
+    this.onShowDirectMessagesHome,
     this.onOpenUserSettings,
     this.voiceUiState = const DiscordVoiceUiState(),
     this.voiceParticipantNames = const {},
@@ -199,6 +202,8 @@ class ChannelSidebar extends StatelessWidget {
   final DesktopDisplayDensity density;
   final Set<String> pinnedChannelIds;
   final ValueChanged<String>? onToggleChannelPinned;
+  final bool directMessagesHomeSelected;
+  final VoidCallback? onShowDirectMessagesHome;
   final VoidCallback? onOpenUserSettings;
   final DiscordVoiceUiState voiceUiState;
   final Map<String, String> voiceParticipantNames;
@@ -315,51 +320,66 @@ class ChannelSidebar extends StatelessWidget {
         width: width,
         child: Column(
           children: [
-            _ServerHeader(
-              name: guild?.name ?? '서버를 기다리는 중',
-              onCreateChannel: canCreateChannel && onCreateGuildChannel != null
-                  ? () => _createChannel(context)
-                  : null,
-              onOpenSettings:
-                  canManageRoles || canManageInvites || canManageEvents
-                  ? () => _openServerSettings(context)
-                  : null,
-            ),
-            if (guildErrorMessage case final message?)
-              Padding(
-                padding: const EdgeInsets.fromLTRB(12, 8, 12, 0),
-                child: Text(
-                  message,
-                  style: const TextStyle(
-                    color: Color(0xFFF23F42),
-                    fontSize: 12,
+            if (guild?.isDirectMessages == true)
+              Expanded(
+                child: DirectMessagesNavigation(
+                  channels: channels,
+                  selectedChannelId: selectedChannelId,
+                  readStates: readStates,
+                  friendsSelected: directMessagesHomeSelected,
+                  onSelectChannel: onSelect,
+                  onShowFriends: onShowDirectMessagesHome,
+                ),
+              )
+            else ...[
+              _ServerHeader(
+                name: guild?.name ?? '서버를 기다리는 중',
+                onCreateChannel:
+                    canCreateChannel && onCreateGuildChannel != null
+                    ? () => _createChannel(context)
+                    : null,
+                onOpenSettings:
+                    canManageRoles || canManageInvites || canManageEvents
+                    ? () => _openServerSettings(context)
+                    : null,
+              ),
+              if (guildErrorMessage case final message?)
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(12, 8, 12, 0),
+                  child: Text(
+                    message,
+                    style: const TextStyle(
+                      color: Color(0xFFF23F42),
+                      fontSize: 12,
+                    ),
                   ),
                 ),
-              ),
-            Expanded(
-              child: ListView(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
-                children: [
-                  if (pinnedChannels.isNotEmpty) ...[
-                    const _SectionLabel('고정됨'),
-                    for (final channel in pinnedChannels)
-                      ?_channelEntry(context, channel),
-                  ],
-                  _SectionLabel(
-                    guild?.isDirectMessages == true ? '다이렉트 메시지' : '채널',
+              Expanded(
+                child: ListView(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 8,
+                    vertical: 8,
                   ),
-                  for (final channel in channels)
-                    if (channel.isCategory)
-                      _SectionLabel(
-                        channel.name,
-                        key: ValueKey('category-${channel.id}'),
-                        actions: _channelActions(context, channel),
-                      )
-                    else if (!pinnedChannelIds.contains(channel.id))
-                      ?_channelEntry(context, channel),
-                ],
+                  children: [
+                    if (pinnedChannels.isNotEmpty) ...[
+                      const _SectionLabel('고정됨'),
+                      for (final channel in pinnedChannels)
+                        ?_channelEntry(context, channel),
+                    ],
+                    const _SectionLabel('채널'),
+                    for (final channel in channels)
+                      if (channel.isCategory)
+                        _SectionLabel(
+                          channel.name,
+                          key: ValueKey('category-${channel.id}'),
+                          actions: _channelActions(context, channel),
+                        )
+                      else if (!pinnedChannelIds.contains(channel.id))
+                        ?_channelEntry(context, channel),
+                  ],
+                ),
               ),
-            ),
+            ],
             if (voiceUiState.voice.channelId case final channelId?)
               VoiceConnectionPanel(
                 state: voiceUiState,

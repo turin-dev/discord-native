@@ -7,15 +7,15 @@
     <style>
       :root {
         color-scheme: dark;
-        --window: #111214;
-        --rail: #1e1f22;
-        --sidebar: #2b2d31;
-        --footer: #232428;
-        --chat: #313338;
-        --input: #383a40;
-        --hover: #35373c;
-        --selected: #404249;
-        --divider: #1f2023;
+        --window: #0a1e2e;
+        --rail: #0c0c0c;
+        --sidebar: #061027;
+        --footer: #071521;
+        --chat: #050e23;
+        --input: #04052b;
+        --hover: #151c2d;
+        --selected: #181f30;
+        --divider: #071521;
         --brand: #5865f2;
         --text: #f2f3f5;
         --normal: #dbdee1;
@@ -42,7 +42,7 @@
         color: var(--faint);
         font-size: 12px;
       }
-      .search { height: 24px; padding: 4px 10px; border-radius: 6px; background: #2a2b30; }
+      .search { height: 24px; padding: 4px 10px; border-radius: 6px; background: var(--input); }
       .right { text-align: right; letter-spacing: 8px; }
       .shell { height: calc(100vh - 32px); display: flex; }
       .rail { width: 72px; padding-top: 8px; background: var(--rail); }
@@ -55,16 +55,20 @@
         content: ""; position: absolute; left: -12px; width: 4px; height: 40px;
         border-radius: 0 4px 4px 0; background: white;
       }
-      .sidebar { width: 240px; display: flex; flex-direction: column; background: var(--sidebar); }
+      .sidebar { width: 320px; display: flex; flex-direction: column; background: var(--sidebar); }
       .server, .channel-header {
         height: 48px; display: flex; align-items: center; padding: 0 12px;
         border-bottom: 1px solid var(--divider); color: var(--text); font-weight: 700;
       }
+      .dm-search { height: 48px; padding: 8px 10px; border-bottom: 1px solid var(--divider); }
+      .dm-search div { height: 32px; padding: 7px 10px; border-radius: 4px; background: var(--input); color: var(--faint); font-size: 12px; }
       .channels { flex: 1; padding: 12px 8px; }
       .section { margin: 8px 4px 4px; color: var(--faint); font-size: 11px; font-weight: 700; }
-      .channel { height: 34px; padding: 7px 8px; border-radius: 4px; color: var(--muted); }
+      .channel { height: 44px; display: flex; align-items: center; gap: 10px; padding: 6px 8px; border-radius: 4px; color: var(--muted); }
       .channel.active { background: var(--selected); color: var(--text); }
       .channel.unread { color: var(--normal); font-weight: 700; }
+      .channel .avatar { width: 32px; height: 32px; flex: 0 0 32px; }
+      .badge { margin-left: auto; padding: 1px 6px; border-radius: 10px; background: #f23f42; color: white; font-size: 10px; }
       .user { height: 52px; display: flex; align-items: center; gap: 8px; padding: 6px 8px; background: var(--footer); }
       .avatar { width: 34px; height: 34px; display: grid; place-items: center; border-radius: 50%; background: #e67e22; color: white; font-weight: 700; }
       .user small { display: block; color: var(--faint); }
@@ -79,7 +83,7 @@
       .actions { position: absolute; right: 10px; top: -14px; padding: 6px 9px; border: 1px solid var(--divider); border-radius: 4px; background: var(--sidebar); color: var(--muted); }
       .composer { height: 64px; padding: 8px 16px 16px; }
       .composer div { height: 40px; padding: 10px 14px; border-radius: 8px; background: var(--input); color: var(--faint); }
-      .members { width: 240px; padding: 12px 8px; background: var(--sidebar); }
+      .members { width: 240px; padding: 0 8px 12px; background: var(--chat); }
       .members h2 { margin: 4px 8px 8px; color: var(--faint); font-size: 11px; }
       .member { display: flex; align-items: center; gap: 8px; height: 44px; padding: 4px 8px; color: var(--muted); }
       .member .avatar { width: 32px; height: 32px; background: #5865f2; }
@@ -87,23 +91,23 @@
     </style>
   </head>
   <body>
-    <header class="titlebar"><span>◉ Discord Native</span><div class="search">⌕ 대화 찾기</div><span class="right">▣ ?</span></header>
+    <header class="titlebar"><span>◉ discord_native</span><div class="search">⌕ 대화 찾기</div><span class="right">▣ ?</span></header>
     <main class="shell">
-      <nav class="rail"><div class="guild">◉</div><div class="guild active">DN</div><div class="guild">DEV</div></nav>
+      <nav class="rail"><div class="guild active">◉</div><div class="guild">DN</div><div class="guild">DEV</div></nav>
       <aside class="sidebar">
-        <div class="server">Discord Native⌄</div>
-        <div class="channels"><div class="section">TEXT CHANNELS</div><div class="channel active"># general</div><div class="channel unread"># development</div><div class="channel"># showcase</div><div class="section">VOICE CHANNELS</div><div class="channel">◖ Lounge</div></div>
-        <div class="user"><div class="avatar">N</div><div><strong>native-user</strong><small>연결됨</small></div><span>♩ ◉ ⚙</span></div>
+        <div class="dm-search"><div>대화 찾기 또는 시작하기</div></div>
+        <div class="channels"><div class="channel">♟　친구</div><div class="section">다이렉트 메시지</div><div class="channel"><div class="avatar">B</div>Bob</div><div class="channel active"><div class="avatar">P</div>프로젝트방</div><div class="channel unread"><div class="avatar">C</div>Carol <span class="badge">3</span></div></div>
+        <div class="user"><div class="avatar">A</div><div><strong>Alice</strong><small>연결됨</small></div><span>♩ ◉ ⚙</span></div>
       </aside>
       <section class="chat">
-        <div class="channel-header">#&nbsp; general <span class="topic">Discord Native 팀이 모이는 공간</span></div>
+        <div class="channel-header">♟&nbsp; 프로젝트방</div>
         <div class="messages">
-          <article class="message"><div class="avatar">A</div><div><span class="name">alice</span><time>오후 10:04</time><br />Discord와 같은 밀도로 workspace를 다시 맞췄어요.</div></article>
-          <article class="message"><div class="avatar">B</div><div><span class="name">bob</span><time>오후 10:05</time><span class="actions">↩　♧　•••</span><br />좋아요. hover action과 최신 메시지 하단 정렬도 그대로네요.</div></article>
+          <article class="message"><div class="avatar">B</div><div><span class="name">Bob</span><time>오후 10:04</time><br />DM 사용자와 그룹 멤버가 실제 READY 데이터로 표시돼요.</div></article>
+          <article class="message"><div class="avatar">A</div><div><span class="name">Alice</span><time>오후 10:05</time><span class="actions">↩　♧　•••</span><br />헤더와 입력창에서도 채널용 # 표시가 사라졌어요.</div></article>
         </div>
-        <div class="composer"><div>⊕　#general에 메시지 보내기　　　　　　　　　☺</div></div>
+        <div class="composer"><div>⊕　프로젝트방에 메시지 보내기　　　　　　　　☺</div></div>
       </section>
-      <aside class="members"><div class="channel-header">♟&nbsp; 멤버</div><h2>온라인 — 2</h2><div class="member"><div class="avatar">A</div><span>alice <span class="online">●</span></span></div><div class="member"><div class="avatar">B</div><span>bob <span class="online">●</span></span></div></aside>
+      <aside class="members"><div class="channel-header">멤버 — 3</div><div class="member"><div class="avatar">A</div><span>Alice <span class="online">●</span></span></div><div class="member"><div class="avatar">B</div><span>Bob <span class="online">●</span></span></div><div class="member"><div class="avatar">C</div><span>Carol</span></div></aside>
     </main>
   </body>
 </html>

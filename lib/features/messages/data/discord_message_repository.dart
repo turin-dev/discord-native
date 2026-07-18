@@ -1,4 +1,5 @@
 import 'package:discord_native/core/network/discord_rest_client.dart';
+import 'package:discord_native/features/messages/domain/discord_pinned_messages_state.dart';
 import 'package:discord_native/features/messages/domain/discord_message_state.dart';
 import 'package:discord_native/features/workspace/domain/discord_workspace_state.dart';
 
@@ -15,10 +16,22 @@ abstract interface class MessageRepository {
     int limit = 50,
   });
 
+  Future<DiscordMessagePinsPage> fetchPinnedMessages(
+    String channelId, {
+    DateTime? before,
+    int limit = 50,
+  });
+
   Future<DiscordMessageSearchResult> searchGuildMessages(
     String guildId,
     String query, {
     String? channelId,
+    int offset = 0,
+  });
+
+  Future<DiscordMessageSearchResult> searchChannelMessages(
+    String channelId,
+    String query, {
     int offset = 0,
   });
 
@@ -96,6 +109,15 @@ final class InvalidMessageSearchException implements Exception {
   String toString() => message;
 }
 
+final class InvalidPinnedMessagesException implements Exception {
+  const InvalidPinnedMessagesException(this.message);
+
+  final String message;
+
+  @override
+  String toString() => message;
+}
+
 final class DiscordMessageRepository implements MessageRepository {
   DiscordMessageRepository(
     this._api, {
@@ -130,25 +152,84 @@ final class DiscordMessageRepository implements MessageRepository {
   }
 
   @override
+  Future<DiscordMessagePinsPage> fetchPinnedMessages(
+    String channelId, {
+    DateTime? before,
+    int limit = 50,
+  }) async {
+    final normalizedChannelId = channelId.trim();
+    if (normalizedChannelId.isEmpty) {
+      throw const InvalidPinnedMessagesException('고정 메시지를 조회할 채널이 올바르지 않습니다.');
+    }
+    final body = _readMap(
+      await _api.get(
+        '/channels/$normalizedChannelId/messages/pins',
+        queryParameters: {
+          'limit': limit.clamp(1, 50),
+          if (before != null) 'before': before.toUtc().toIso8601String(),
+        },
+      ),
+      '고정 메시지 목록',
+    );
+    final pins = [
+      for (final item in _readList(body['items'])) _readMessagePin(item),
+    ];
+    return DiscordMessagePinsPage(
+      pins: pins,
+      hasMore: body['has_more'] == true,
+    );
+  }
+
+  @override
   Future<DiscordMessageSearchResult> searchGuildMessages(
     String guildId,
     String query, {
     String? channelId,
     int offset = 0,
   }) async {
-    final normalized = query.trim();
-    if (normalized.isEmpty) {
-      throw const InvalidMessageSearchException('검색어를 입력해 주세요.');
+    final normalized = _normalizeSearchQuery(query);
+    return _searchMessages(
+      path: '/guilds/$guildId/messages/search',
+      fallbackGuildId: guildId,
+      query: normalized,
+      offset: offset,
+      additionalQuery: {
+        if (channelId != null) 'channel_id': [channelId],
+      },
+    );
+  }
+
+  @override
+  Future<DiscordMessageSearchResult> searchChannelMessages(
+    String channelId,
+    String query, {
+    int offset = 0,
+  }) {
+    final normalizedChannelId = channelId.trim();
+    if (normalizedChannelId.isEmpty) {
+      throw const InvalidMessageSearchException('검색할 대화가 올바르지 않습니다.');
     }
-    if (normalized.length > 1024) {
-      throw const InvalidMessageSearchException('검색어는 1024자 이하여야 합니다.');
-    }
+    return _searchMessages(
+      path: '/channels/$normalizedChannelId/messages/search',
+      fallbackGuildId: discordDirectMessagesGuildId,
+      query: _normalizeSearchQuery(query),
+      offset: offset,
+    );
+  }
+
+  Future<DiscordMessageSearchResult> _searchMessages({
+    required String path,
+    required String fallbackGuildId,
+    required String query,
+    required int offset,
+    Map<String, Object?> additionalQuery = const {},
+  }) async {
     for (var attempt = 0; attempt < 3; attempt += 1) {
       final body = await _api.get(
-        '/guilds/$guildId/messages/search',
+        path,
         queryParameters: {
-          'content': normalized,
-          if (channelId != null) 'channel_id': [channelId],
+          'content': query,
+          ...additionalQuery,
           'limit': 25,
           'offset': offset.clamp(0, 9975),
           'sort_by': 'relevance',
@@ -164,7 +245,7 @@ final class DiscordMessageRepository implements MessageRepository {
         await _delay(_searchRetryDelay(body));
         continue;
       }
-      return _readSearchResult(body, guildId, normalized);
+      return _readSearchResult(body, fallbackGuildId, query);
     }
     throw const InvalidMessageSearchException('Discord 메시지 검색에 실패했습니다.');
   }
@@ -446,6 +527,17 @@ Duration _searchRetryDelay(Object? value) {
   return const Duration(seconds: 1);
 }
 
+String _normalizeSearchQuery(String query) {
+  final normalized = query.trim();
+  if (normalized.isEmpty) {
+    throw const InvalidMessageSearchException('검색어를 입력해 주세요.');
+  }
+  if (normalized.length > 1024) {
+    throw const InvalidMessageSearchException('검색어는 1024자 이하여야 합니다.');
+  }
+  return normalized;
+}
+
 DiscordMessageSearchResult _readSearchResult(
   Object? value,
   String guildId,
@@ -497,4 +589,19 @@ Map<String, Object?> _readMap(Object? value, String field) {
 
 List<Object?> _readList(Object? value) {
   return value is List ? List.unmodifiable(value) : const [];
+}
+
+DiscordMessagePin _readMessagePin(Object? value) {
+  final pin = _readMap(value, '고정 메시지');
+  final pinnedAt = switch (pin['pinned_at']) {
+    final String value => DateTime.tryParse(value),
+    _ => null,
+  };
+  if (pinnedAt == null) {
+    throw const FormatException('고정 시각 형식이 올바르지 않습니다.');
+  }
+  final message = DiscordMessage.fromJson(
+    _readMessage(pin['message']),
+  ).copyWith(pinned: true);
+  return DiscordMessagePin(pinnedAt: pinnedAt, message: message);
 }

@@ -16,6 +16,7 @@ class MessageSearchPanel extends StatefulWidget {
     required this.onSearch,
     required this.onSelectResult,
     required this.onClear,
+    this.showChannelFilter = true,
     super.key,
   });
 
@@ -24,6 +25,7 @@ class MessageSearchPanel extends StatefulWidget {
   final SearchMessagesCallback? onSearch;
   final SelectSearchResultCallback? onSelectResult;
   final VoidCallback? onClear;
+  final bool showChannelFilter;
 
   @override
   State<MessageSearchPanel> createState() => _MessageSearchPanelState();
@@ -75,7 +77,7 @@ class _MessageSearchPanelState extends State<MessageSearchPanel> {
     return ColoredBox(
       color: context.discordPalette.sidebar,
       child: SizedBox(
-        width: 280,
+        width: DiscordLayout.rightPanelWidth,
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
@@ -98,18 +100,19 @@ class _MessageSearchPanelState extends State<MessageSearchPanel> {
                 ),
               ),
             ),
-            CheckboxListTile(
-              key: const ValueKey('current-channel-only'),
-              dense: true,
-              value: _currentChannelOnly,
-              onChanged: widget.onSearch == null
-                  ? null
-                  : (value) {
-                      setState(() => _currentChannelOnly = value == true);
-                    },
-              title: const Text('현재 채널만', style: TextStyle(fontSize: 12)),
-              controlAffinity: ListTileControlAffinity.leading,
-            ),
+            if (widget.showChannelFilter)
+              CheckboxListTile(
+                key: const ValueKey('current-channel-only'),
+                dense: true,
+                value: _currentChannelOnly,
+                onChanged: widget.onSearch == null
+                    ? null
+                    : (value) {
+                        setState(() => _currentChannelOnly = value == true);
+                      },
+                title: const Text('현재 채널만', style: TextStyle(fontSize: 12)),
+                controlAffinity: ListTileControlAffinity.leading,
+              ),
             if (widget.state.isLoading) const LinearProgressIndicator(),
             if (widget.state.errorMessage case final message?)
               Padding(
@@ -167,7 +170,7 @@ class _MessageSearchPanelState extends State<MessageSearchPanel> {
             overflow: TextOverflow.ellipsis,
           ),
           subtitle: Text(
-            '${message.authorName} · #${_channelName(message.channelId)}',
+            '${message.authorName} · ${_channelLabel(message.channelId)}',
           ),
           onTap: widget.onSelectResult == null
               ? null
@@ -177,10 +180,10 @@ class _MessageSearchPanelState extends State<MessageSearchPanel> {
     );
   }
 
-  String _channelName(String channelId) {
+  String _channelLabel(String channelId) {
     for (final channel in widget.channels) {
       if (channel.id == channelId) {
-        return channel.name;
+        return channel.isPrivate ? channel.name : '#${channel.name}';
       }
     }
     return channelId;

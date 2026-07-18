@@ -19,6 +19,29 @@ void main() {
       expect(state.guilds.single.name, '첫 서버');
     });
 
+    test('desktop READY guild properties에서 이름과 icon을 읽는다', () {
+      final state = const DiscordWorkspaceState().payloadReceived({
+        'op': 0,
+        't': 'READY',
+        'd': {
+          'user': {'id': 'user-1', 'username': 'native-user'},
+          'guilds': [
+            {
+              'id': 'guild-1',
+              'properties': {
+                'id': 'guild-1',
+                'name': '실제 서버',
+                'icon': 'a_icon-hash',
+              },
+            },
+          ],
+        },
+      });
+
+      expect(state.guilds.single.name, '실제 서버');
+      expect(state.guilds.single.iconHash, 'a_icon-hash');
+    });
+
     test('READY의 1:1·group DM을 synthetic guild 채널로 구성한다', () {
       final state = const DiscordWorkspaceState().payloadReceived({
         'op': 0,
@@ -61,6 +84,43 @@ void main() {
       expect(state.channels.first.isPrivate, isTrue);
       expect(state.channels.first.isTextChannel, isTrue);
       expect(state.channels.last.name, '프로젝트 방');
+    });
+
+    test('READY users와 recipient_ids로 현대 DM 사용자를 해석한다', () {
+      final state = const DiscordWorkspaceState().payloadReceived({
+        'op': 0,
+        't': 'READY',
+        'd': {
+          'user': {'id': 'user-1', 'username': 'alice'},
+          'guilds': [],
+          'users': [
+            {'id': 'user-2', 'username': 'bob', 'global_name': 'Bob'},
+            {'id': 'user-3', 'username': 'carol'},
+          ],
+          'relationships': [
+            {'id': 'user-2', 'type': 1},
+          ],
+          'private_channels': [
+            {
+              'id': 'dm-1',
+              'type': 1,
+              'recipient_ids': ['user-2'],
+            },
+            {
+              'id': 'group-1',
+              'type': 3,
+              'recipient_ids': ['user-2', 'user-3'],
+            },
+          ],
+        },
+      });
+
+      final directMessage = state.channelById('dm-1')!;
+      final groupMessage = state.channelById('group-1')!;
+      expect(directMessage.name, 'Bob');
+      expect(directMessage.recipients.single.username, 'bob');
+      expect(groupMessage.name, 'Bob, carol');
+      expect(groupMessage.recipients, hasLength(2));
     });
 
     test('GUILD_CREATE 채널을 position 순서로 저장한다', () {

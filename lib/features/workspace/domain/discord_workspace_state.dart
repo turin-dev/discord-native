@@ -1,3 +1,4 @@
+import 'package:collection/collection.dart';
 import 'package:discord_native/features/workspace/domain/discord_scheduled_event.dart';
 
 part 'discord_workspace_models.dart';
@@ -29,15 +30,13 @@ final class DiscordChannel {
   factory DiscordChannel.fromJson(
     Map<String, Object?> json, {
     String? fallbackGuildId,
+    List<DiscordUser> knownUsers = const [],
   }) {
     final type = switch (json['type']) {
       final num value => value.toInt(),
       _ => 0,
     };
-    final recipients = [
-      for (final item in _readList(json['recipients']))
-        DiscordUser.fromJson(_readMap(item, 'channel recipient')),
-    ];
+    final recipients = _privateChannelRecipients(json, knownUsers);
     final permissionOverwrites = [
       for (final item in _readList(json['permission_overwrites']))
         DiscordPermissionOverwrite.fromJson(
@@ -355,9 +354,13 @@ final class DiscordWorkspaceState {
 
   DiscordWorkspaceState _receiveReady(Map<String, Object?> data) {
     final rawGuilds = _readList(data['guilds']);
+    final knownUsers = _readyUsers(data);
     final privateChannels = [
       for (final item in _readList(data['private_channels']))
-        DiscordChannel.fromJson(_readMap(item, 'private channel')),
+        DiscordChannel.fromJson(
+          _readMap(item, 'private channel'),
+          knownUsers: knownUsers,
+        ),
     ];
     final hasDirectMessages =
         privateChannels.isNotEmpty ||
@@ -682,6 +685,69 @@ String _privateChannelName(int type, List<DiscordUser> recipients) {
       .take(3)
       .map((user) => user.displayName ?? user.username)
       .join(', ');
+}
+
+List<DiscordUser> _readyUsers(Map<String, Object?> data) {
+  var users = <DiscordUser>[];
+  for (final item in _readList(data['users'])) {
+    final userData = _readMap(item, 'READY user');
+    final id = _requiredString(userData['id'], 'user.id');
+    users = _upsertById(
+      users,
+      DiscordUser.fromPartialJson(
+        userData,
+        fallback: users.where((user) => user.id == id).firstOrNull,
+      ),
+      (user) => user.id,
+    );
+  }
+  for (final item in _readList(data['relationships'])) {
+    final userValue = _readMap(item, 'relationship')['user'];
+    if (userValue is! Map) {
+      continue;
+    }
+    final userData = userValue.map(
+      (key, value) => MapEntry(key.toString(), value),
+    );
+    final id = _requiredString(userData['id'], 'relationship.user.id');
+    users = _upsertById(
+      users,
+      DiscordUser.fromPartialJson(
+        userData,
+        fallback: users.where((user) => user.id == id).firstOrNull,
+      ),
+      (user) => user.id,
+    );
+  }
+  return List.unmodifiable(users);
+}
+
+List<DiscordUser> _privateChannelRecipients(
+  Map<String, Object?> json,
+  List<DiscordUser> knownUsers,
+) {
+  final embedded = [
+    for (final item in _readList(json['recipients']))
+      DiscordUser.fromJson(_readMap(item, 'channel recipient')),
+  ];
+  final recipientIds = [
+    for (final item in _readList(json['recipient_ids']))
+      if (item is String && item.isNotEmpty) item,
+  ];
+  if (recipientIds.isEmpty) {
+    return List.unmodifiable(embedded);
+  }
+  return List.unmodifiable(
+    recipientIds.map((id) {
+      return embedded.firstWhereOrNull((user) => user.id == id) ??
+          knownUsers.firstWhereOrNull((user) => user.id == id) ??
+          DiscordUser(id: id, username: '사용자 ${_shortUserId(id)}');
+    }),
+  );
+}
+
+String _shortUserId(String id) {
+  return id.length <= 6 ? id : id.substring(id.length - 6);
 }
 
 int _compareSnowflakesDescending(String left, String right) {

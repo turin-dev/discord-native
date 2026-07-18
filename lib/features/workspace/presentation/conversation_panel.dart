@@ -61,6 +61,11 @@ class ConversationPanel extends StatefulWidget {
     required this.onStartThreadFromMessage,
     required this.onJoinThread,
     required this.onSetThreadArchived,
+    required this.directMessageSearchQuery,
+    required this.onSearchDirectMessages,
+    required this.onClearDirectMessageSearch,
+    this.pinnedMessagesOpen = false,
+    this.onTogglePinnedMessages,
     super.key,
   });
 
@@ -91,6 +96,11 @@ class ConversationPanel extends StatefulWidget {
   final StartThreadFromMessageCallback? onStartThreadFromMessage;
   final JoinThreadCallback? onJoinThread;
   final SetThreadArchivedCallback? onSetThreadArchived;
+  final String directMessageSearchQuery;
+  final Future<void> Function(String query)? onSearchDirectMessages;
+  final VoidCallback? onClearDirectMessageSearch;
+  final bool pinnedMessagesOpen;
+  final VoidCallback? onTogglePinnedMessages;
 
   @override
   State<ConversationPanel> createState() => _ConversationPanelState();
@@ -231,6 +241,11 @@ class _ConversationPanelState extends State<ConversationPanel> {
       children: [
         ThreadConversationHeader(
           channel: widget.channel,
+          directMessageSearchQuery: widget.directMessageSearchQuery,
+          onSearchDirectMessages: widget.onSearchDirectMessages,
+          onClearDirectMessageSearch: widget.onClearDirectMessageSearch,
+          pinnedMessagesOpen: widget.pinnedMessagesOpen,
+          onTogglePinnedMessages: widget.onTogglePinnedMessages,
           onRefreshThreads: widget.onRefreshThreads,
           onCreateThread: widget.onCreateThread,
           onJoinThread: widget.onJoinThread,
@@ -265,7 +280,7 @@ class _ConversationPanelState extends State<ConversationPanel> {
             valueListenable: _replyTarget,
             builder: (context, replyTarget, _) => MessageComposer(
               controller: _composer,
-              channelName: widget.channel?.name ?? '메시지',
+              hintText: _composerHint(widget.channel),
               enabled:
                   widget.channel != null &&
                   widget.canSendMessages &&
@@ -350,6 +365,9 @@ class _MessageList extends StatelessWidget {
     }
     if (state.messages.isEmpty) {
       final selectedChannel = channel!;
+      if (selectedChannel.isPrivate) {
+        return _DirectMessageEmptyState(channel: selectedChannel);
+      }
       return Center(
         child: Column(
           mainAxisSize: MainAxisSize.min,
@@ -382,6 +400,10 @@ class _MessageList extends StatelessWidget {
       );
     }
     final showPagination = state.hasMore || state.isLoadingOlder;
+    final Map<String, String> mediaProxyUrls = Map.unmodifiable({
+      ...state.mediaProxyUrls,
+      ..._attachmentMediaProxyUrls(state.messages),
+    });
     return ListView.builder(
       reverse: true,
       padding: const EdgeInsets.symmetric(vertical: 12),
@@ -398,7 +420,10 @@ class _MessageList extends StatelessWidget {
         final message = state.messages[messageIndex];
         final isOwnMessage = currentUserId == message.authorId;
         return MessageBubble(
+          key: ValueKey('message-${message.id}'),
           message: message,
+          grouped: _isGroupedMessage(state.messages, messageIndex),
+          mediaProxyUrls: mediaProxyUrls,
           onReply: () => onReply(message),
           onStartThread: onStartThread == null
               ? null
@@ -417,6 +442,116 @@ class _MessageList extends StatelessWidget {
           onDownloadAttachment: onDownloadAttachment,
         );
       },
+    );
+  }
+}
+
+bool _isGroupedMessage(List<DiscordMessage> messages, int index) {
+  if (index <= 0 || index >= messages.length) {
+    return false;
+  }
+  final current = messages[index];
+  final previous = messages[index - 1];
+  if (current.authorId != previous.authorId ||
+      current.referencedMessage != null) {
+    return false;
+  }
+  final gap = current.timestamp.difference(previous.timestamp);
+  if (gap.isNegative || gap >= const Duration(minutes: 7)) {
+    return false;
+  }
+  final currentDay = current.timestamp.toLocal();
+  final previousDay = previous.timestamp.toLocal();
+  return currentDay.year == previousDay.year &&
+      currentDay.month == previousDay.month &&
+      currentDay.day == previousDay.day;
+}
+
+Map<String, String> _attachmentMediaProxyUrls(List<DiscordMessage> messages) {
+  return Map.unmodifiable(
+    Map.fromEntries([
+      for (final message in messages)
+        for (final attachment in message.attachments)
+          ?_attachmentMediaProxyEntry(attachment),
+    ]),
+  );
+}
+
+MapEntry<String, String>? _attachmentMediaProxyEntry(
+  DiscordAttachment attachment,
+) {
+  if (!attachment.isImage) {
+    return null;
+  }
+  final path = _discordAttachmentPath(attachment.url);
+  return path == null ? null : MapEntry(path, attachment.proxyUrl);
+}
+
+String? _discordAttachmentPath(String value) {
+  final uri = Uri.tryParse(value);
+  const hosts = {'cdn.discordapp.com', 'media.discordapp.net'};
+  if (uri == null ||
+      uri.scheme != 'https' ||
+      !hosts.contains(uri.host.toLowerCase())) {
+    return null;
+  }
+  return uri.path;
+}
+
+String _composerHint(DiscordChannel? channel) {
+  if (channel == null) {
+    return '메시지 보내기';
+  }
+  return switch (channel.type) {
+    1 => '${channel.name}에게 메시지 보내기',
+    3 => '${channel.name}에 메시지 보내기',
+    _ => '#${channel.name}에 메시지 보내기',
+  };
+}
+
+class _DirectMessageEmptyState extends StatelessWidget {
+  const _DirectMessageEmptyState({required this.channel});
+
+  final DiscordChannel channel;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.all(24),
+      child: Align(
+        alignment: Alignment.bottomLeft,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            CircleAvatar(
+              radius: 34,
+              backgroundColor: context.discordPalette.input,
+              child: Icon(
+                channel.type == 3 ? Icons.group : Icons.person,
+                size: 38,
+                color: context.discordPalette.text,
+              ),
+            ),
+            const SizedBox(height: 16),
+            Text(
+              channel.name,
+              style: TextStyle(
+                color: context.discordPalette.text,
+                fontSize: 24,
+                fontWeight: FontWeight.w800,
+              ),
+            ),
+            const SizedBox(height: 6),
+            Text(
+              channel.type == 3
+                  ? '${channel.name} 그룹의 시작이에요.'
+                  : '${channel.name}님과 나눈 대화의 시작이에요.',
+              style: TextStyle(color: context.discordPalette.textMuted),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }

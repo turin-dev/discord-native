@@ -1,5 +1,6 @@
 import 'package:discord_native/core/network/discord_rest_client.dart';
 import 'package:discord_native/features/messages/data/discord_message_repository.dart';
+import 'package:discord_native/features/messages/domain/discord_pinned_messages_state.dart';
 import 'package:discord_native/features/messages/domain/discord_message_state.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -367,6 +368,41 @@ void main() {
       expect(result.threads.single.joined, isTrue);
     });
 
+    test('DM 검색은 선택한 private channel endpoint만 조회한다', () async {
+      final api = _FakeDiscordRestApi(
+        getResponse: {
+          'total_results': 1,
+          'messages': [
+            [
+              {
+                'id': 'message-dm-search',
+                'channel_id': 'dm-1',
+                'content': '다이렉트 메시지 검색 결과',
+                'timestamp': '2026-07-18T10:04:00.000Z',
+                'author': {'id': 'user-2', 'username': 'bob'},
+                'attachments': [],
+              },
+            ],
+          ],
+        },
+      );
+      final repository = DiscordMessageRepository(api);
+
+      final result = await repository.searchChannelMessages('dm-1', '  회의  ');
+
+      expect(api.lastPath, '/channels/dm-1/messages/search');
+      expect(api.lastQuery, {
+        'content': '회의',
+        'limit': 25,
+        'offset': 0,
+        'sort_by': 'relevance',
+        'sort_order': 'desc',
+      });
+      expect(result.query, '회의');
+      expect(result.messages.single.id, 'message-dm-search');
+      expect(result.threads, isEmpty);
+    });
+
     test('검색 index 202 본문은 retry_after 이후 재시도한다', () async {
       final api = _FakeDiscordRestApi(
         getResponses: [
@@ -409,6 +445,62 @@ void main() {
 
       expect(api.lastQuery, {'limit': 50, 'around': 'message-search'});
       expect(messages.single.id, 'message-around');
+    });
+
+    test('최신 pin endpoint의 페이지와 ISO cursor를 파싱한다', () async {
+      final api = _FakeDiscordRestApi(
+        getResponse: {
+          'items': [
+            {
+              'pinned_at': '2026-07-18T10:05:00.000Z',
+              'message': {
+                'id': 'message-pinned',
+                'channel_id': 'channel-1',
+                'content': '고정된 설계 메모',
+                'timestamp': '2026-07-18T09:00:00.000Z',
+                'author': {'id': 'user-1', 'username': 'alice'},
+                'attachments': [],
+                'pinned': true,
+              },
+            },
+          ],
+          'has_more': true,
+        },
+      );
+      final repository = DiscordMessageRepository(api);
+      final before = DateTime.utc(2026, 7, 18, 10);
+
+      final page = await repository.fetchPinnedMessages(
+        'channel-1',
+        before: before,
+        limit: 100,
+      );
+
+      expect(api.lastPath, '/channels/channel-1/messages/pins');
+      expect(api.lastQuery, {
+        'limit': 50,
+        'before': '2026-07-18T10:00:00.000Z',
+      });
+      expect(page, isA<DiscordMessagePinsPage>());
+      expect(page.pins.single.message.id, 'message-pinned');
+      expect(page.pins.single.message.pinned, isTrue);
+      expect(page.pins.single.pinnedAt, DateTime.utc(2026, 7, 18, 10, 5));
+      expect(page.hasMore, isTrue);
+    });
+
+    test('pin 응답 형식과 channel 경계를 API 호출 전에 검증한다', () async {
+      final malformedApi = _FakeDiscordRestApi(getResponse: const []);
+      final repository = DiscordMessageRepository(malformedApi);
+
+      expect(
+        () => repository.fetchPinnedMessages('channel-1'),
+        throwsA(isA<FormatException>()),
+      );
+      expect(
+        () => repository.fetchPinnedMessages('  '),
+        throwsA(isA<InvalidPinnedMessagesException>()),
+      );
+      expect(malformedApi.getCount, 1);
     });
 
     test('빈 검색어와 1024자를 넘는 검색어는 API 전에 거부한다', () async {

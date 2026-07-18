@@ -14,6 +14,8 @@ typedef AttachmentVideoBuilder = Widget Function(DiscordAttachment attachment);
 class MessageBubble extends StatefulWidget {
   const MessageBubble({
     required this.message,
+    required this.grouped,
+    required this.mediaProxyUrls,
     required this.onReply,
     required this.onToggleReaction,
     required this.onVotePoll,
@@ -28,6 +30,8 @@ class MessageBubble extends StatefulWidget {
   });
 
   final DiscordMessage message;
+  final bool grouped;
+  final Map<String, String> mediaProxyUrls;
   final VoidCallback onReply;
   final VoidCallback? onStartThread;
   final MessageReactionCallback? onToggleReaction;
@@ -72,9 +76,17 @@ class _MessageBubbleState extends State<MessageBubble> {
                   ? context.discordPalette.hover
                   : Colors.transparent,
               child: Padding(
-                padding: const EdgeInsets.fromLTRB(16, 3, 16, 3),
+                padding: EdgeInsets.fromLTRB(
+                  16,
+                  widget.grouped ? 1 : 8,
+                  16,
+                  widget.grouped ? 1 : 3,
+                ),
                 child: _MessageBody(
                   message: widget.message,
+                  grouped: widget.grouped,
+                  hovered: hovered,
+                  mediaProxyUrls: widget.mediaProxyUrls,
                   timeLabel: timeLabel,
                   onToggleReaction: widget.onToggleReaction,
                   onVotePoll: widget.onVotePoll,
@@ -104,6 +116,9 @@ class _MessageBubbleState extends State<MessageBubble> {
 class _MessageBody extends StatelessWidget {
   const _MessageBody({
     required this.message,
+    required this.grouped,
+    required this.hovered,
+    required this.mediaProxyUrls,
     required this.timeLabel,
     required this.onToggleReaction,
     required this.onVotePoll,
@@ -111,6 +126,9 @@ class _MessageBody extends StatelessWidget {
   });
 
   final DiscordMessage message;
+  final bool grouped;
+  final bool hovered;
+  final Map<String, String> mediaProxyUrls;
   final String timeLabel;
   final MessageReactionCallback? onToggleReaction;
   final PollVoteCallback? onVotePoll;
@@ -122,19 +140,53 @@ class _MessageBody extends StatelessWidget {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        DiscordInitialAvatar(id: message.authorId, label: message.authorName),
+        if (grouped)
+          SizedBox(
+            width: 40,
+            child: hovered
+                ? Align(
+                    alignment: Alignment.center,
+                    child: Text(
+                      timeLabel,
+                      style: TextStyle(
+                        color: context.discordPalette.textFaint,
+                        fontSize: 9,
+                      ),
+                    ),
+                  )
+                : null,
+          )
+        else
+          DiscordInitialAvatar(
+            id: message.authorId,
+            label: message.authorName,
+            avatarHash: message.authorAvatarHash,
+          ),
         const SizedBox(width: 12),
-        Expanded(child: _MessageContentColumn(message, timeLabel, this)),
+        Expanded(
+          child: _MessageContentColumn(
+            message: message,
+            timeLabel: timeLabel,
+            grouped: grouped,
+            owner: this,
+          ),
+        ),
       ],
     );
   }
 }
 
 class _MessageContentColumn extends StatelessWidget {
-  const _MessageContentColumn(this.message, this.timeLabel, this.owner);
+  const _MessageContentColumn({
+    required this.message,
+    required this.timeLabel,
+    required this.grouped,
+    required this.owner,
+  });
 
   final DiscordMessage message;
   final String timeLabel;
+  final bool grouped;
   final _MessageBody owner;
 
   @override
@@ -144,13 +196,17 @@ class _MessageContentColumn extends StatelessWidget {
       children: [
         if (message.referencedMessage case final referenced?)
           MessageReplyPreview(message: referenced),
-        _MessageHeader(message: message, timeLabel: timeLabel),
+        if (!grouped) _MessageHeader(message: message, timeLabel: timeLabel),
         if (message.content.isNotEmpty ||
             message.embeds.isNotEmpty ||
             message.stickers.isNotEmpty ||
             message.poll != null) ...[
-          const SizedBox(height: 2),
-          DiscordMessageContent(message: message, onVotePoll: owner.onVotePoll),
+          if (!grouped) const SizedBox(height: 2),
+          DiscordMessageContent(
+            message: message,
+            mediaProxyUrls: owner.mediaProxyUrls,
+            onVotePoll: owner.onVotePoll,
+          ),
         ],
         for (final attachment in message.attachments)
           MessageAttachmentCard(

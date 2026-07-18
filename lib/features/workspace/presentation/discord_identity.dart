@@ -97,20 +97,28 @@ class DiscordInitialAvatar extends StatelessWidget {
   const DiscordInitialAvatar({
     required this.id,
     required this.label,
+    this.avatarHash,
     this.radius = 20,
     super.key,
   });
 
   final String id;
   final String label;
+  final String? avatarHash;
   final double radius;
 
   @override
   Widget build(BuildContext context) {
+    final imageUrl = _avatarUrlFromParts(id, avatarHash);
     return CircleAvatar(
       radius: radius,
       backgroundColor: _identityColor(id),
-      child: _Initials(label: label, fontSize: radius * 0.72),
+      foregroundImage: imageUrl == null
+          ? null
+          : CachedNetworkImageProvider(imageUrl),
+      child: imageUrl == null
+          ? _Initials(label: label, fontSize: radius * 0.72)
+          : null,
     );
   }
 }
@@ -146,12 +154,18 @@ String? _guildIconUrl(DiscordGuild guild) {
 }
 
 String? _avatarUrl(DiscordUser? user) {
-  final hash = user?.avatarHash;
-  if (user == null || hash == null) {
+  if (user == null) {
+    return null;
+  }
+  return _avatarUrlFromParts(user.id, user.avatarHash);
+}
+
+String? _avatarUrlFromParts(String id, String? hash) {
+  if (hash == null) {
     return null;
   }
   final extension = hash.startsWith('a_') ? 'gif' : 'webp';
-  return 'https://cdn.discordapp.com/avatars/${user.id}/$hash.$extension?size=128';
+  return 'https://cdn.discordapp.com/avatars/$id/$hash.$extension?size=128';
 }
 
 String _initials(String value) {

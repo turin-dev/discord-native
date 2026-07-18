@@ -1,5 +1,6 @@
 import 'package:discord_native/features/workspace/domain/discord_workspace_state.dart';
 import 'package:discord_native/features/workspace/presentation/discord_design_tokens.dart';
+import 'package:discord_native/features/workspace/presentation/direct_messages_components.dart';
 import 'package:flutter/material.dart';
 
 typedef RefreshThreadsCallback = Future<void> Function(String parentChannelId);
@@ -14,6 +15,11 @@ typedef SetThreadArchivedCallback =
 class ThreadConversationHeader extends StatelessWidget {
   const ThreadConversationHeader({
     required this.channel,
+    this.directMessageSearchQuery = '',
+    this.onSearchDirectMessages,
+    this.onClearDirectMessageSearch,
+    this.pinnedMessagesOpen = false,
+    this.onTogglePinnedMessages,
     this.onRefreshThreads,
     this.onCreateThread,
     this.onJoinThread,
@@ -22,6 +28,11 @@ class ThreadConversationHeader extends StatelessWidget {
   });
 
   final DiscordChannel? channel;
+  final String directMessageSearchQuery;
+  final DirectMessageSearchCallback? onSearchDirectMessages;
+  final VoidCallback? onClearDirectMessageSearch;
+  final bool pinnedMessagesOpen;
+  final VoidCallback? onTogglePinnedMessages;
   final RefreshThreadsCallback? onRefreshThreads;
   final CreateThreadCallback? onCreateThread;
   final JoinThreadCallback? onJoinThread;
@@ -30,6 +41,16 @@ class ThreadConversationHeader extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final selected = channel;
+    if (selected?.isPrivate == true) {
+      return DirectMessageHeader(
+        channel: selected,
+        searchQuery: directMessageSearchQuery,
+        onSearch: onSearchDirectMessages,
+        onClearSearch: onClearDirectMessageSearch,
+        pinnedMessagesOpen: pinnedMessagesOpen,
+        onTogglePinnedMessages: onTogglePinnedMessages,
+      );
+    }
     return Container(
       height: DiscordLayout.channelHeaderHeight,
       padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -73,6 +94,14 @@ class ThreadConversationHeader extends StatelessWidget {
             ),
           ] else
             const Spacer(),
+          if (onTogglePinnedMessages != null)
+            _HeaderAction(
+              tooltip: pinnedMessagesOpen ? '고정된 메시지 닫기' : '고정된 메시지 보기',
+              onPressed: onTogglePinnedMessages,
+              icon: pinnedMessagesOpen
+                  ? Icons.push_pin
+                  : Icons.push_pin_outlined,
+            ),
           if (selected?.canCreatePublicThread == true) ...[
             _HeaderAction(
               tooltip: '스레드 새로고침',

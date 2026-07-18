@@ -7,6 +7,7 @@ import 'package:collection/collection.dart';
 import 'package:discord_native/features/messages/domain/discord_message_state.dart';
 import 'package:discord_native/features/messages/domain/discord_typing_state.dart';
 import 'package:discord_native/features/messages/domain/discord_message_search_state.dart';
+import 'package:discord_native/features/messages/domain/discord_pinned_messages_state.dart';
 import 'package:discord_native/features/workspace/data/read_state_repository.dart';
 import 'package:discord_native/features/workspace/domain/discord_people_state.dart';
 import 'package:discord_native/features/workspace/domain/discord_permissions.dart';
@@ -24,6 +25,8 @@ import 'package:discord_native/features/workspace/presentation/workspace_navigat
 import 'package:discord_native/features/workspace/presentation/workspace_right_panel.dart';
 import 'package:discord_native/features/workspace/presentation/discord_design_tokens.dart';
 import 'package:discord_native/features/workspace/presentation/discord_title_bar.dart';
+import 'package:discord_native/features/workspace/presentation/direct_messages_components.dart';
+import 'package:discord_native/features/workspace/presentation/resizable_channel_sidebar.dart';
 import 'package:discord_native/features/voice/domain/discord_voice_ui_state.dart';
 import 'package:discord_native/features/voice/domain/discord_voice_media_state.dart';
 import 'package:flutter/material.dart';
@@ -68,6 +71,12 @@ class DiscordWorkspacePage extends StatefulWidget {
     this.onSearchMessages,
     this.onSelectSearchResult,
     this.onClearSearch,
+    this.pinnedMessagesState = const DiscordPinnedMessagesState(),
+    this.onTogglePinnedMessages,
+    this.onClosePinnedMessages,
+    this.onLoadMorePinnedMessages,
+    this.onRefreshPinnedMessages,
+    this.onSelectPinnedMessage,
     this.peopleErrorMessage,
     this.onOpenDirectMessage,
     this.onSendFriendRequest,
@@ -169,6 +178,12 @@ class DiscordWorkspacePage extends StatefulWidget {
   final SearchMessagesCallback? onSearchMessages;
   final SelectSearchResultCallback? onSelectSearchResult;
   final VoidCallback? onClearSearch;
+  final DiscordPinnedMessagesState pinnedMessagesState;
+  final VoidCallback? onTogglePinnedMessages;
+  final VoidCallback? onClosePinnedMessages;
+  final Future<void> Function()? onLoadMorePinnedMessages;
+  final Future<void> Function()? onRefreshPinnedMessages;
+  final MessageActionCallback? onSelectPinnedMessage;
   final String? peopleErrorMessage;
   final RelationshipActionCallback? onOpenDirectMessage;
   final SendFriendRequestCallback? onSendFriendRequest;
@@ -207,8 +222,15 @@ class DiscordWorkspacePage extends StatefulWidget {
     required ValueChanged<String> selectChannel,
     required ValueChanged<double> resizeSidebar,
     required VoidCallback finishSidebarResize,
+    required bool showDirectMessagesHome,
+    required VoidCallback showFriends,
   }) {
     final guild = _selectedGuild(state.guilds, selectedGuildId);
+    final directMessages = guild?.isDirectMessages == true;
+    final showingDirectMessagesHome = directMessages && showDirectMessagesHome;
+    final sidebarWidth = directMessages
+        ? DiscordLayout.directMessagesSidebarWidth
+        : effectiveSidebarWidth;
     final guildChannels = guild == null
         ? const <DiscordChannel>[]
         : state.channelsForGuild(guild.id);
@@ -314,8 +336,9 @@ class DiscordWorkspacePage extends StatefulWidget {
                   onSelect: selectGuild,
                   density: displayDensity,
                 ),
-                _ResizableChannelSidebar(
-                  width: effectiveSidebarWidth,
+                ResizableChannelSidebar(
+                  width: sidebarWidth,
+                  resizable: !directMessages,
                   onDrag: resizeSidebar,
                   onDragEnd: finishSidebarResize,
                   child: ChannelSidebar(
@@ -368,10 +391,17 @@ class DiscordWorkspacePage extends StatefulWidget {
                     density: displayDensity,
                     pinnedChannelIds: pinnedChannelIds,
                     onToggleChannelPinned: onToggleChannelPinned,
+                    directMessagesHomeSelected: showingDirectMessagesHome,
+                    onShowDirectMessagesHome: showFriends,
                   ),
                 ),
                 Expanded(
-                  child: channel?.isForum == true || channel?.isMedia == true
+                  child: showingDirectMessagesHome
+                      ? DirectMessagesHomePanel(
+                          peopleState: peopleState,
+                          onOpenDirectMessage: onOpenDirectMessage,
+                        )
+                      : channel?.isForum == true || channel?.isMedia == true
                       ? ForumChannelPanel(
                           channel: channel!,
                           posts: forumPosts,
@@ -412,10 +442,24 @@ class DiscordWorkspacePage extends StatefulWidget {
                           onStartThreadFromMessage: onStartThreadFromMessage,
                           onJoinThread: onJoinThread,
                           onSetThreadArchived: onSetThreadArchived,
+                          directMessageSearchQuery: searchState.query,
+                          onSearchDirectMessages:
+                              channel?.isPrivate == true &&
+                                  onSearchMessages != null
+                              ? (query) => onSearchMessages!(query, true)
+                              : null,
+                          onClearDirectMessageSearch: onClearSearch,
+                          pinnedMessagesOpen:
+                              pinnedMessagesState.channelId == channel?.id,
+                          onTogglePinnedMessages: channel == null
+                              ? null
+                              : onTogglePinnedMessages,
                         ),
                 ),
                 WorkspaceRightPanel(
                   guild: guild,
+                  channel: showingDirectMessagesHome ? null : channel,
+                  currentUser: state.currentUser,
                   peopleState: peopleState,
                   searchState: searchState,
                   channels: state.channels,
@@ -428,6 +472,12 @@ class DiscordWorkspacePage extends StatefulWidget {
                   onAcceptFriendRequest: onAcceptFriendRequest,
                   onBlockRelationship: onBlockRelationship,
                   onRemoveRelationship: onRemoveRelationship,
+                  pinnedMessagesState: pinnedMessagesState,
+                  onSelectPinnedMessage: onSelectPinnedMessage,
+                  onClosePinnedMessages: onClosePinnedMessages,
+                  onLoadMorePinnedMessages: onLoadMorePinnedMessages,
+                  onRefreshPinnedMessages: onRefreshPinnedMessages,
+                  onUnpinMessage: canPinMessages ? onTogglePinned : null,
                 ),
               ],
             ),
@@ -517,6 +567,7 @@ class _DiscordWorkspacePageState extends State<DiscordWorkspacePage> {
   late DiscordNavigationHistory _history;
   late double _sidebarWidth;
   bool _restoringHistory = false;
+  bool _showDirectMessagesHome = false;
 
   @override
   void initState() {
@@ -557,6 +608,8 @@ class _DiscordWorkspacePageState extends State<DiscordWorkspacePage> {
       selectChannel: _selectChannel,
       resizeSidebar: _resizeSidebar,
       finishSidebarResize: _finishSidebarResize,
+      showDirectMessagesHome: _showDirectMessagesHome,
+      showFriends: _showFriends,
     );
   }
 
@@ -565,16 +618,24 @@ class _DiscordWorkspacePageState extends State<DiscordWorkspacePage> {
   void _goForward() => _navigate(_history.forward());
 
   void _selectGuild(String guildId) {
+    setState(() {
+      _showDirectMessagesHome = guildId == discordDirectMessagesGuildId;
+    });
     widget.onSelectGuild(guildId);
   }
 
   void _selectChannel(String channelId) {
     setState(() {
+      _showDirectMessagesHome = false;
       _history = _history.visit(
         DiscordWorkspaceLocation(widget.selectedGuildId, channelId),
       );
     });
     widget.onSelectChannel(channelId);
+  }
+
+  void _showFriends() {
+    setState(() => _showDirectMessagesHome = true);
   }
 
   void _navigate(DiscordNavigationHistory next) {
@@ -604,48 +665,6 @@ class _DiscordWorkspacePageState extends State<DiscordWorkspacePage> {
 
   void _finishSidebarResize() {
     widget.onChannelSidebarWidthChanged?.call(_sidebarWidth);
-  }
-}
-
-class _ResizableChannelSidebar extends StatelessWidget {
-  const _ResizableChannelSidebar({
-    required this.width,
-    required this.child,
-    required this.onDrag,
-    required this.onDragEnd,
-  });
-
-  final double width;
-  final Widget child;
-  final ValueChanged<double> onDrag;
-  final VoidCallback onDragEnd;
-
-  @override
-  Widget build(BuildContext context) {
-    return SizedBox(
-      width: width + 8,
-      child: Stack(
-        children: [
-          child,
-          Positioned(
-            top: 0,
-            right: 0,
-            bottom: 0,
-            width: 8,
-            child: Listener(
-              key: const ValueKey('channel-sidebar-resize-handle'),
-              behavior: HitTestBehavior.opaque,
-              onPointerMove: (event) => onDrag(event.delta.dx),
-              onPointerUp: (_) => onDragEnd(),
-              child: MouseRegion(
-                cursor: SystemMouseCursors.resizeColumn,
-                child: ColoredBox(color: context.discordPalette.divider),
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
   }
 }
 

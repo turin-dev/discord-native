@@ -13,6 +13,7 @@ import 'package:discord_native/features/messages/data/attachment_download_servic
 import 'package:discord_native/features/messages/data/discord_message_repository.dart';
 import 'package:discord_native/features/messages/data/message_cache_repository.dart';
 import 'package:discord_native/features/messages/domain/discord_message_search_state.dart';
+import 'package:discord_native/features/messages/domain/discord_pinned_messages_state.dart';
 import 'package:discord_native/features/messages/domain/discord_message_state.dart';
 import 'package:discord_native/features/messages/domain/discord_typing_state.dart';
 import 'package:discord_native/features/system/domain/discord_message_notification.dart';
@@ -211,7 +212,12 @@ final class DiscordAppController {
   void selectGuild(String guildId) {
     final channels = _state.workspace.channelsForGuild(guildId);
     final channelId = _firstSelectableChannelId(channels);
-    _update(_state.copyWith(selectedGuildId: guildId));
+    _update(
+      _state.copyWith(
+        selectedGuildId: guildId,
+        pinnedMessagesState: const DiscordPinnedMessagesState(),
+      ),
+    );
     if (channelId != null) {
       selectChannel(channelId);
     }
@@ -224,6 +230,7 @@ final class DiscordAppController {
         _state.copyWith(
           selectedChannelId: channelId,
           messageState: DiscordMessageState.loaded(channelId, const []),
+          pinnedMessagesState: const DiscordPinnedMessagesState(),
         ),
       );
       if (channel.isForum || channel.isMedia) {
@@ -238,6 +245,7 @@ final class DiscordAppController {
           channelId: channelId,
           isLoading: true,
         ),
+        pinnedMessagesState: const DiscordPinnedMessagesState(),
       ),
     );
     unawaited(_loadMessages(channelId));
@@ -403,7 +411,12 @@ final class DiscordAppController {
       await repository.deleteMessage(message.channelId, message.id);
       if (_state.selectedChannelId == message.channelId) {
         _update(
-          _state.copyWith(messageState: _state.messageState.remove(message.id)),
+          _state.copyWith(
+            messageState: _state.messageState.remove(message.id),
+            pinnedMessagesState: _state.pinnedMessagesState.removeMessage(
+              message.id,
+            ),
+          ),
         );
       }
     } on Object catch (error) {
@@ -417,6 +430,8 @@ final class DiscordAppController {
       return;
     }
     final pinned = !message.pinned;
+    final refreshPanel =
+        _state.pinnedMessagesState.channelId == message.channelId && pinned;
     try {
       await repository.setPinned(message.channelId, message.id, pinned);
       if (_state.selectedChannelId == message.channelId) {
@@ -425,8 +440,14 @@ final class DiscordAppController {
             messageState: _state.messageState.add(
               message.copyWith(pinned: pinned),
             ),
+            pinnedMessagesState: pinned
+                ? _state.pinnedMessagesState
+                : _state.pinnedMessagesState.removeMessage(message.id),
           ),
         );
+      }
+      if (refreshPanel && _isPinnedMessagesCurrent(message.channelId)) {
+        await openPinnedMessages();
       }
     } on Object catch (error) {
       _showMessageError(error);
@@ -497,22 +518,35 @@ final class DiscordAppController {
     if (guildId == null || repository == null) {
       return;
     }
+    final selectedChannelId = _state.selectedChannelId;
+    final selectedChannel = selectedChannelId == null
+        ? null
+        : _state.workspace.channelById(selectedChannelId);
+    final directMessageChannelId =
+        guildId == discordDirectMessagesGuildId &&
+            selectedChannel?.isPrivate == true
+        ? selectedChannel!.id
+        : null;
+    final effectiveCurrentChannelOnly =
+        currentChannelOnly || directMessageChannelId != null;
     final normalized = query.trim();
     _update(
       _state.copyWith(
         searchState: DiscordMessageSearchState.loading(
           normalized,
-          currentChannelOnly: currentChannelOnly,
+          currentChannelOnly: effectiveCurrentChannelOnly,
         ),
       ),
     );
     try {
-      final result = await repository.searchGuildMessages(
-        guildId,
-        normalized,
-        channelId: currentChannelOnly ? _state.selectedChannelId : null,
+      final result = await _executeMessageSearch(
+        repository: repository,
+        guildId: guildId,
+        directMessageChannelId: directMessageChannelId,
+        query: normalized,
+        currentChannelOnly: effectiveCurrentChannelOnly,
       );
-      if (_state.searchState.query != normalized) {
+      if (!_isMessageSearchCurrent(normalized, directMessageChannelId)) {
         return;
       }
       _update(
@@ -522,12 +556,12 @@ final class DiscordAppController {
             query: result.query,
             totalResults: result.totalResults,
             messages: result.messages,
-            currentChannelOnly: currentChannelOnly,
+            currentChannelOnly: effectiveCurrentChannelOnly,
           ),
         ),
       );
     } on Object catch (error) {
-      if (_state.searchState.query == normalized) {
+      if (_isMessageSearchCurrent(normalized, directMessageChannelId)) {
         _update(
           _state.copyWith(
             searchState: _state.searchState.failed(_friendlyError(error)),
@@ -535,6 +569,29 @@ final class DiscordAppController {
         );
       }
     }
+  }
+
+  Future<DiscordMessageSearchResult> _executeMessageSearch({
+    required MessageRepository repository,
+    required String guildId,
+    required String? directMessageChannelId,
+    required String query,
+    required bool currentChannelOnly,
+  }) {
+    if (directMessageChannelId != null) {
+      return repository.searchChannelMessages(directMessageChannelId, query);
+    }
+    return repository.searchGuildMessages(
+      guildId,
+      query,
+      channelId: currentChannelOnly ? _state.selectedChannelId : null,
+    );
+  }
+
+  bool _isMessageSearchCurrent(String query, String? directMessageChannelId) {
+    return _state.searchState.query == query &&
+        (directMessageChannelId == null ||
+            _state.selectedChannelId == directMessageChannelId);
   }
 
   Future<void> selectSearchResult(DiscordMessage message) async {
@@ -552,6 +609,107 @@ final class DiscordAppController {
 
   void clearSearch() {
     _update(_state.copyWith(searchState: const DiscordMessageSearchState()));
+  }
+
+  Future<void> openPinnedMessages() async {
+    final channelId = _state.selectedChannelId;
+    final repository = _messageRepository;
+    if (channelId == null || repository == null) {
+      return;
+    }
+    _update(
+      _state.copyWith(
+        pinnedMessagesState: DiscordPinnedMessagesState.loading(channelId),
+      ),
+    );
+    try {
+      final page = await repository.fetchPinnedMessages(channelId);
+      if (_isPinnedMessagesCurrent(channelId)) {
+        _update(
+          _state.copyWith(
+            pinnedMessagesState: DiscordPinnedMessagesState.loaded(
+              channelId: channelId,
+              pins: page.pins,
+              hasMore: page.hasMore,
+            ),
+          ),
+        );
+      }
+    } on Object catch (error) {
+      if (_isPinnedMessagesCurrent(channelId)) {
+        _update(
+          _state.copyWith(
+            pinnedMessagesState: _state.pinnedMessagesState.failed(
+              _friendlyError(error),
+            ),
+          ),
+        );
+      }
+    }
+  }
+
+  Future<void> loadMorePinnedMessages() async {
+    final current = _state.pinnedMessagesState;
+    final repository = _messageRepository;
+    final channelId = current.channelId;
+    if (channelId == null ||
+        repository == null ||
+        current.isLoading ||
+        current.isLoadingMore ||
+        !current.hasMore ||
+        current.pins.isEmpty) {
+      return;
+    }
+    _update(_state.copyWith(pinnedMessagesState: current.loadingMore()));
+    try {
+      final page = await repository.fetchPinnedMessages(
+        channelId,
+        before: current.pins.last.pinnedAt,
+      );
+      if (_isPinnedMessagesCurrent(channelId)) {
+        _update(
+          _state.copyWith(
+            pinnedMessagesState: _state.pinnedMessagesState.appendPage(page),
+          ),
+        );
+      }
+    } on Object catch (error) {
+      if (_isPinnedMessagesCurrent(channelId)) {
+        _update(
+          _state.copyWith(
+            pinnedMessagesState: _state.pinnedMessagesState.failed(
+              _friendlyError(error),
+            ),
+          ),
+        );
+      }
+    }
+  }
+
+  Future<void> selectPinnedMessage(DiscordMessage message) async {
+    if (!_isPinnedMessagesCurrent(message.channelId)) {
+      return;
+    }
+    _update(
+      _state.copyWith(
+        messageState: DiscordMessageState(
+          channelId: message.channelId,
+          isLoading: true,
+        ),
+      ),
+    );
+    await _loadMessagesAround(message.channelId, message.id);
+  }
+
+  void closePinnedMessages() {
+    _update(
+      _state.copyWith(pinnedMessagesState: const DiscordPinnedMessagesState()),
+    );
+  }
+
+  bool _isPinnedMessagesCurrent(String channelId) {
+    return _state.selectedChannelId == channelId &&
+        _state.pinnedMessagesState.channelId == channelId;
   }
 
   Future<void> refreshThreads(String parentChannelId) async {

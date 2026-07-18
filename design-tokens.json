@@ -24,6 +24,7 @@
     "titleBarHeight": 32,
     "guildRailWidth": 72,
     "channelSidebarWidth": 240,
+    "directMessagesSidebarWidth": 320,
     "channelHeaderHeight": 48,
     "rightPanelWidth": 240,
     "userPanelHeight": 52,

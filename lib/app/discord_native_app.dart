@@ -79,6 +79,7 @@ class _AppHome extends ConsumerWidget {
         messageState: state.messageState,
         typingUsers: state.typingState.usersForChannel(state.selectedChannelId),
         searchState: state.searchState,
+        pinnedMessagesState: state.pinnedMessagesState,
         readStates: state.readStates,
         clientApiWarning: state.clientApiWarning,
         selectedGuildId: state.selectedGuildId,
@@ -173,6 +174,17 @@ class _AppHome extends ConsumerWidget {
         },
         onSelectSearchResult: controller.selectSearchResult,
         onClearSearch: controller.clearSearch,
+        onTogglePinnedMessages: () {
+          if (state.pinnedMessagesState.isOpen) {
+            controller.closePinnedMessages();
+          } else {
+            unawaited(controller.openPinnedMessages());
+          }
+        },
+        onClosePinnedMessages: controller.closePinnedMessages,
+        onLoadMorePinnedMessages: controller.loadMorePinnedMessages,
+        onRefreshPinnedMessages: controller.openPinnedMessages,
+        onSelectPinnedMessage: controller.selectPinnedMessage,
         onOpenDirectMessage: controller.openDirectMessage,
         onSendFriendRequest: controller.sendFriendRequest,
         onAcceptFriendRequest: controller.acceptFriendRequest,

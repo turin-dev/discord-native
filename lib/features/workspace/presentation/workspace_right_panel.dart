@@ -1,9 +1,12 @@
 import 'package:discord_native/features/messages/domain/discord_message_search_state.dart';
+import 'package:discord_native/features/messages/domain/discord_pinned_messages_state.dart';
 import 'package:discord_native/features/workspace/domain/discord_people_state.dart';
 import 'package:discord_native/features/workspace/domain/discord_workspace_state.dart';
 import 'package:discord_native/features/workspace/presentation/message_search_panel.dart';
+import 'package:discord_native/features/workspace/presentation/pinned_messages_panel.dart';
 import 'package:discord_native/features/workspace/presentation/discord_design_tokens.dart';
 import 'package:discord_native/features/workspace/presentation/discord_identity.dart';
+import 'package:discord_native/features/workspace/presentation/direct_messages_components.dart';
 import 'package:flutter/material.dart';
 
 typedef SendFriendRequestCallback = Future<void> Function(String username);
@@ -13,6 +16,8 @@ typedef RelationshipActionCallback =
 class WorkspaceRightPanel extends StatelessWidget {
   const WorkspaceRightPanel({
     required this.guild,
+    required this.channel,
+    required this.currentUser,
     required this.peopleState,
     required this.searchState,
     required this.channels,
@@ -25,10 +30,18 @@ class WorkspaceRightPanel extends StatelessWidget {
     required this.onAcceptFriendRequest,
     required this.onBlockRelationship,
     required this.onRemoveRelationship,
+    this.pinnedMessagesState = const DiscordPinnedMessagesState(),
+    this.onSelectPinnedMessage,
+    this.onClosePinnedMessages,
+    this.onLoadMorePinnedMessages,
+    this.onRefreshPinnedMessages,
+    this.onUnpinMessage,
     super.key,
   });
 
   final DiscordGuild? guild;
+  final DiscordChannel? channel;
+  final DiscordUser? currentUser;
   final DiscordPeopleState peopleState;
   final DiscordMessageSearchState searchState;
   final List<DiscordChannel> channels;
@@ -41,11 +54,51 @@ class WorkspaceRightPanel extends StatelessWidget {
   final RelationshipActionCallback? onAcceptFriendRequest;
   final RelationshipActionCallback? onBlockRelationship;
   final RelationshipActionCallback? onRemoveRelationship;
+  final DiscordPinnedMessagesState pinnedMessagesState;
+  final PinnedMessageCallback? onSelectPinnedMessage;
+  final VoidCallback? onClosePinnedMessages;
+  final Future<void> Function()? onLoadMorePinnedMessages;
+  final Future<void> Function()? onRefreshPinnedMessages;
+  final PinnedMessageCallback? onUnpinMessage;
 
   @override
   Widget build(BuildContext context) {
     final directMessages = guild?.isDirectMessages == true;
+    final directMessageChannel = channel;
     final hasActiveSearch = searchState.query.trim().isNotEmpty;
+    final pinnedMessagesOpen =
+        pinnedMessagesState.isOpen &&
+        pinnedMessagesState.channelId == directMessageChannel?.id;
+    if (pinnedMessagesOpen) {
+      return PinnedMessagesPanel(
+        state: pinnedMessagesState,
+        onSelect: onSelectPinnedMessage,
+        onClose: onClosePinnedMessages,
+        onLoadMore: onLoadMorePinnedMessages,
+        onRetry: onRefreshPinnedMessages,
+        onUnpin: onUnpinMessage,
+      );
+    }
+    if (directMessages && hasActiveSearch) {
+      return MessageSearchPanel(
+        state: searchState,
+        channels: channels,
+        onSearch: onSearch,
+        onSelectResult: onSelectResult,
+        onClear: onClear,
+        showChannelFilter: false,
+      );
+    }
+    if (directMessages && directMessageChannel?.type == 3) {
+      return DirectMessageMembersPanel(
+        channel: directMessageChannel!,
+        currentUser: currentUser,
+        peopleState: peopleState,
+      );
+    }
+    if (directMessages && directMessageChannel?.type == 1) {
+      return const SizedBox.shrink();
+    }
     return DefaultTabController(
       key: ValueKey(
         'right-panel-${guild?.id}-${hasActiveSearch ? 'search' : 'default'}',

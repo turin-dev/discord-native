@@ -224,6 +224,7 @@ final class DiscordMessage {
     required this.authorId,
     required this.authorName,
     required this.timestamp,
+    this.authorAvatarHash,
     this.editedTimestamp,
     this.reference,
     this.referencedMessage,
@@ -255,6 +256,7 @@ final class DiscordMessage {
         author['global_name'] ?? author['username'],
         'message.author.username',
       ),
+      authorAvatarHash: _optionalString(author['avatar']),
       timestamp: _requiredDate(json['timestamp'], 'message.timestamp'),
       editedTimestamp: _optionalDate(json['edited_timestamp']),
       reference: reference == null
@@ -299,6 +301,7 @@ final class DiscordMessage {
   final String content;
   final String authorId;
   final String authorName;
+  final String? authorAvatarHash;
   final DateTime timestamp;
   final DateTime? editedTimestamp;
   final DiscordMessageReference? reference;
@@ -373,6 +376,9 @@ final class DiscordMessage {
               author['global_name'] ?? author['username'],
               'message.author.username',
             ),
+      authorAvatarHash: author == null || !author.containsKey('avatar')
+          ? authorAvatarHash
+          : _optionalString(author['avatar']),
       timestamp: _optionalDate(json['timestamp']) ?? timestamp,
       editedTimestamp: json.containsKey('edited_timestamp')
           ? _optionalDate(json['edited_timestamp'])
@@ -437,6 +443,7 @@ final class DiscordMessage {
       content: content ?? this.content,
       authorId: authorId,
       authorName: authorName,
+      authorAvatarHash: authorAvatarHash,
       timestamp: timestamp,
       editedTimestamp: editedTimestamp,
       reference: reference,
@@ -457,6 +464,7 @@ final class DiscordMessageState {
   const DiscordMessageState({
     this.channelId,
     this.messages = const [],
+    this.mediaProxyUrls = const {},
     this.isLoading = false,
     this.isLoadingOlder = false,
     this.hasMore = false,
@@ -468,16 +476,19 @@ final class DiscordMessageState {
     String channelId,
     List<DiscordMessage> messages, {
     bool hasMore = false,
+    Map<String, String> mediaProxyUrls = const {},
   }) {
     return DiscordMessageState(
       channelId: channelId,
       messages: List.unmodifiable(_sortMessages(messages)),
+      mediaProxyUrls: Map.unmodifiable(mediaProxyUrls),
       hasMore: hasMore,
     );
   }
 
   final String? channelId;
   final List<DiscordMessage> messages;
+  final Map<String, String> mediaProxyUrls;
   final bool isLoading;
   final bool isLoadingOlder;
   final bool hasMore;
@@ -605,6 +616,7 @@ final class DiscordMessageState {
   DiscordMessageState copyWith({
     String? channelId,
     List<DiscordMessage>? messages,
+    Map<String, String>? mediaProxyUrls,
     bool? isLoading,
     bool? isLoadingOlder,
     bool? hasMore,
@@ -614,6 +626,7 @@ final class DiscordMessageState {
     return DiscordMessageState(
       channelId: channelId ?? this.channelId,
       messages: List.unmodifiable(messages ?? this.messages),
+      mediaProxyUrls: Map.unmodifiable(mediaProxyUrls ?? this.mediaProxyUrls),
       isLoading: isLoading ?? this.isLoading,
       isLoadingOlder: isLoadingOlder ?? this.isLoadingOlder,
       hasMore: hasMore ?? this.hasMore,

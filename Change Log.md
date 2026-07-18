@@ -12,11 +12,25 @@ aliases: [Change Log]
 
 ## 2026-07-18
 
+- 현대 READY의 최상위 `users`와 private channel `recipient_ids` 결합 및 legacy embedded recipient 호환 구현
+- 320px DM 탐색, 대화 검색, 친구 홈, 실제 avatar·unread 목록과 `#` 없는 DM header·composer 문구 구현
+- group DM participant panel과 1:1 DM 전체 대화 폭을 분리하고 system dark를 참조 화면 기반 Midnight onyx palette로 보정
+- DM header의 현재 대화 메시지 검색, 240px 결과 panel과 결과 선택 `around` 컨텍스트 이동 구현
+- private channel 검색 endpoint와 guild 검색 endpoint를 repository·controller에서 분리하고 검색 경쟁 시 DM channel scope 보존
+- guild·DM header의 실제 고정 메시지 action, 240px cursor pagination panel, message 이동·해제 구현
+- 공개 Message Pin 목록 API와 `CHANNEL_PINS_UPDATE`를 연결하고 channel 전환 뒤 늦은 응답·mutation이 새 channel을 오염시키지 않도록 보정
+- desktop READY nested guild `properties`를 복원해 실제 guild 이름·아이콘을 표시
+- Discord CDN attachment 직링크를 filename과 inline media로 렌더링하고 계정 전체 cache의 signed proxy를 path 기준으로 재사용
+- 같은 작성자의 7분 이내 연속 메시지를 단일 avatar·header로 묶고 7분 경계·날짜 변경·답장에서 새 그룹을 시작하도록 구현
+- message author avatar hash를 Gateway/REST 모델, partial update와 SQLite cache까지 보존해 실제 CDN avatar로 표시
+- 압축 message hover timestamp와 개별 reply·menu action을 실제 Windows Release에서 검증
+- analyzer 0건, 380개 테스트와 81.15% line coverage, AOT symbol 분리·icon subset Windows Release build와 Inno Setup installer 검증
+- 현재 소스 로컬 측정에서 시작 0.241초·메모리 186.75MB·설치 크기 59.34MB는 기준을 통과하고 유휴 CPU 5.438%는 0.5% 기준을 초과
 - Windows 전역 F1–F12 Push-to-Talk press/release 감지와 active PTT 음성 엔진 전달 구현
 - 전역 PTT 활성화, 단축키 선택과 0–2000ms release delay 설정·secure storage 영속화 구현
 - active PTT 음성 세션에서만 선택한 단일 virtual key를 확인하고, 대기 중에는 꺼지는 `GetAsyncKeyState` polling 경계 구현
 - 음성 설정 UI를 독립 컴포넌트로 분리하고 switch·dropdown·slider 클릭 경로 테스트 추가
-- analyzer 0건, 355개 테스트와 80.47% line coverage, Windows debug·release build 검증
+- 전역 PTT 단계 기준 analyzer 0건, 355개 테스트와 80.47% line coverage, Windows debug·release build 검증
 
 ## 2026-07-17
 

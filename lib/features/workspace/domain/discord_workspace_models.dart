@@ -180,36 +180,37 @@ final class DiscordGuild {
     Map<String, Object?> json, {
     DiscordGuild? fallback,
   }) {
-    final id = _requiredString(json['id'], 'guild.id');
-    final roles = json.containsKey('roles')
+    final guildData = _guildProperties(json);
+    final id = _requiredString(guildData['id'], 'guild.id');
+    final roles = guildData.containsKey('roles')
         ? [
-            for (final item in _readList(json['roles']))
+            for (final item in _readList(guildData['roles']))
               DiscordRole.fromJson(_readMap(item, 'role')),
           ]
         : fallback?.roles ?? const <DiscordRole>[];
-    final emojis = json.containsKey('emojis')
+    final emojis = guildData.containsKey('emojis')
         ? [
-            for (final item in _readList(json['emojis']))
+            for (final item in _readList(guildData['emojis']))
               DiscordGuildEmoji.fromJson(_readMap(item, 'emoji')),
           ]
         : fallback?.emojis ?? const <DiscordGuildEmoji>[];
-    final stickers = json.containsKey('stickers')
+    final stickers = guildData.containsKey('stickers')
         ? [
-            for (final item in _readList(json['stickers']))
+            for (final item in _readList(guildData['stickers']))
               DiscordGuildSticker.fromJson(_readMap(item, 'guild sticker')),
           ]
         : fallback?.stickers ?? const <DiscordGuildSticker>[];
     return DiscordGuild(
       id: id,
-      name: _optionalString(json['name']) ?? fallback?.name ?? '서버 $id',
-      iconHash: json.containsKey('icon')
-          ? _optionalString(json['icon'])
+      name: _optionalString(guildData['name']) ?? fallback?.name ?? '서버 $id',
+      iconHash: guildData.containsKey('icon')
+          ? _optionalString(guildData['icon'])
           : fallback?.iconHash,
-      unavailable: json.containsKey('unavailable')
-          ? json['unavailable'] == true
+      unavailable: guildData.containsKey('unavailable')
+          ? guildData['unavailable'] == true
           : fallback?.unavailable ?? false,
-      ownerId: json.containsKey('owner_id')
-          ? _optionalString(json['owner_id'])
+      ownerId: guildData.containsKey('owner_id')
+          ? _optionalString(guildData['owner_id'])
           : fallback?.ownerId,
       roles: List.unmodifiable(roles),
       emojis: List.unmodifiable(emojis),
@@ -244,6 +245,17 @@ final class DiscordGuild {
       stickers: List.unmodifiable(stickers ?? this.stickers),
     );
   }
+}
+
+Map<String, Object?> _guildProperties(Map<String, Object?> json) {
+  final properties = json['properties'];
+  if (properties is! Map) {
+    return json;
+  }
+  return Map.unmodifiable({
+    ..._readMap(properties, 'guild.properties'),
+    ...json,
+  });
 }
 
 final class DiscordThreadMetadata {
