@@ -446,7 +446,7 @@ final class DiscordAppController {
           ),
         );
       }
-      if (refreshPanel) {
+      if (refreshPanel && _isPinnedMessagesCurrent(message.channelId)) {
         await openPinnedMessages();
       }
     } on Object catch (error) {

@@ -75,8 +75,23 @@ extension DiscordAppControllerEvents on DiscordAppController {
       unawaited(_loadMessages(selectedChannelId));
     }
     _receiveReadEvent(event);
+    _receivePinnedMessagesEvent(event);
     _receiveMessageNotification(event);
     _cacheGatewayMessageEvent(event);
+  }
+
+  void _receivePinnedMessagesEvent(Map<String, Object?> event) {
+    if (event['t'] != 'CHANNEL_PINS_UPDATE') {
+      return;
+    }
+    final data = event['d'];
+    if (data is! Map) {
+      return;
+    }
+    final channelId = data['channel_id'];
+    if (channelId is String && _isPinnedMessagesCurrent(channelId)) {
+      unawaited(openPinnedMessages());
+    }
   }
 
   Future<void> _loadMessages(String channelId) async {
