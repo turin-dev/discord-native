@@ -400,7 +400,10 @@ class _MessageList extends StatelessWidget {
       );
     }
     final showPagination = state.hasMore || state.isLoadingOlder;
-    final mediaProxyUrls = _attachmentMediaProxyUrls(state.messages);
+    final Map<String, String> mediaProxyUrls = Map.unmodifiable({
+      ...state.mediaProxyUrls,
+      ..._attachmentMediaProxyUrls(state.messages),
+    });
     return ListView.builder(
       reverse: true,
       padding: const EdgeInsets.symmetric(vertical: 12),

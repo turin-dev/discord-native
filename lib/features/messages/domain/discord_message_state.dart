@@ -457,6 +457,7 @@ final class DiscordMessageState {
   const DiscordMessageState({
     this.channelId,
     this.messages = const [],
+    this.mediaProxyUrls = const {},
     this.isLoading = false,
     this.isLoadingOlder = false,
     this.hasMore = false,
@@ -468,16 +469,19 @@ final class DiscordMessageState {
     String channelId,
     List<DiscordMessage> messages, {
     bool hasMore = false,
+    Map<String, String> mediaProxyUrls = const {},
   }) {
     return DiscordMessageState(
       channelId: channelId,
       messages: List.unmodifiable(_sortMessages(messages)),
+      mediaProxyUrls: Map.unmodifiable(mediaProxyUrls),
       hasMore: hasMore,
     );
   }
 
   final String? channelId;
   final List<DiscordMessage> messages;
+  final Map<String, String> mediaProxyUrls;
   final bool isLoading;
   final bool isLoadingOlder;
   final bool hasMore;
@@ -605,6 +609,7 @@ final class DiscordMessageState {
   DiscordMessageState copyWith({
     String? channelId,
     List<DiscordMessage>? messages,
+    Map<String, String>? mediaProxyUrls,
     bool? isLoading,
     bool? isLoadingOlder,
     bool? hasMore,
@@ -614,6 +619,7 @@ final class DiscordMessageState {
     return DiscordMessageState(
       channelId: channelId ?? this.channelId,
       messages: List.unmodifiable(messages ?? this.messages),
+      mediaProxyUrls: Map.unmodifiable(mediaProxyUrls ?? this.mediaProxyUrls),
       isLoading: isLoading ?? this.isLoading,
       isLoadingOlder: isLoadingOlder ?? this.isLoadingOlder,
       hasMore: hasMore ?? this.hasMore,

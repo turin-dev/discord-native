@@ -12,6 +12,8 @@ abstract interface class MessageCacheRepository {
     int limit = 50,
   });
 
+  Future<Map<String, String>> loadMediaProxyUrls({required String accountId});
+
   Future<void> replace({
     required String accountId,
     required String channelId,
@@ -89,6 +91,31 @@ final class SqliteMessageCacheRepository implements MessageCacheRepository {
     }
     messages.sort((left, right) => left.timestamp.compareTo(right.timestamp));
     return List.unmodifiable(messages);
+  }
+
+  @override
+  Future<Map<String, String>> loadMediaProxyUrls({
+    required String accountId,
+  }) async {
+    _validateAccountId(accountId);
+    final database = await _database();
+    final rows = await database.query(
+      _table,
+      columns: const ['channel_id', 'message_id', 'payload'],
+      where: 'account_id = ?',
+      whereArgs: [accountId],
+    );
+    final messages = await Future.wait([
+      for (final row in rows) _decodeCachedRow(database, accountId, row),
+    ]);
+    return Map.unmodifiable(
+      Map.fromEntries([
+        for (final message in messages)
+          if (message != null)
+            for (final attachment in message.attachments)
+              ?_mediaProxyEntry(attachment),
+      ]),
+    );
   }
 
   @override
@@ -244,6 +271,47 @@ DiscordMessage _decodeMessage(String payload) {
   );
 }
 
+Future<DiscordMessage?> _decodeCachedRow(
+  Database database,
+  String accountId,
+  Map<String, Object?> row,
+) async {
+  try {
+    return _decodeMessage(row['payload']! as String);
+  } on FormatException {
+    await database.delete(
+      _table,
+      where: 'account_id = ? AND channel_id = ? AND message_id = ?',
+      whereArgs: [accountId, row['channel_id'], row['message_id']],
+    );
+    return null;
+  }
+}
+
+MapEntry<String, String>? _mediaProxyEntry(DiscordAttachment attachment) {
+  if (!attachment.isImage) {
+    return null;
+  }
+  final source = Uri.tryParse(attachment.url);
+  final proxy = Uri.tryParse(attachment.proxyUrl);
+  if (!_isDiscordAttachmentUri(source) ||
+      !_isDiscordAttachmentUri(proxy) ||
+      source!.path != proxy!.path) {
+    return null;
+  }
+  return MapEntry(source.path, proxy.toString());
+}
+
+bool _isDiscordAttachmentUri(Uri? uri) {
+  const hosts = {'cdn.discordapp.com', 'media.discordapp.net'};
+  const roots = {'attachments', 'ephemeral-attachments'};
+  return uri != null &&
+      uri.scheme == 'https' &&
+      hosts.contains(uri.host.toLowerCase()) &&
+      uri.pathSegments.isNotEmpty &&
+      roots.contains(uri.pathSegments.first);
+}
+
 Map<String, Object?> _messageJson(DiscordMessage message) {
   return {
     'id': message.id,
@@ -316,5 +384,11 @@ Map<String, Object?>? _referenceJson(DiscordMessageReference? reference) {
 void _validateScope(String accountId, String channelId) {
   if (accountId.isEmpty || channelId.isEmpty) {
     throw const FormatException('캐시 계정과 채널 ID가 필요합니다.');
+  }
+}
+
+void _validateAccountId(String accountId) {
+  if (accountId.isEmpty) {
+    throw const FormatException('캐시 계정 ID가 필요합니다.');
   }
 }

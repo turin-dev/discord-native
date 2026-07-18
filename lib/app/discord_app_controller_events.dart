@@ -103,11 +103,13 @@ extension DiscordAppControllerEvents on DiscordAppController {
       final messages = await repository.fetchMessages(channelId);
       if (_state.selectedChannelId == channelId) {
         final cacheError = await _replaceCachedMessages(channelId, messages);
+        final mediaProxyUrls = await _loadCachedMediaProxyUrls();
         _update(
           _state.copyWith(
             messageState: DiscordMessageState(
               channelId: channelId,
               messages: messages,
+              mediaProxyUrls: mediaProxyUrls,
               hasMore: messages.length >= _messagePageSize,
               errorMessage: cacheError,
             ),
@@ -118,11 +120,13 @@ extension DiscordAppControllerEvents on DiscordAppController {
     } on Object catch (error) {
       if (_state.selectedChannelId == channelId) {
         final cached = await _loadCachedMessages(channelId);
+        final mediaProxyUrls = await _loadCachedMediaProxyUrls();
         _update(
           _state.copyWith(
             messageState: DiscordMessageState(
               channelId: channelId,
               messages: cached.messages,
+              mediaProxyUrls: mediaProxyUrls,
               errorMessage: cached.messages.isEmpty
                   ? cached.errorMessage ?? _friendlyError(error)
                   : '오프라인 캐시를 표시하고 있습니다.',
@@ -144,9 +148,14 @@ extension DiscordAppControllerEvents on DiscordAppController {
         messageId,
       );
       if (_state.selectedChannelId == channelId) {
+        final mediaProxyUrls = await _loadCachedMediaProxyUrls();
         _update(
           _state.copyWith(
-            messageState: DiscordMessageState.loaded(channelId, messages),
+            messageState: DiscordMessageState.loaded(
+              channelId,
+              messages,
+              mediaProxyUrls: mediaProxyUrls,
+            ),
           ),
         );
         _markChannelRead(channelId, messageId);
@@ -261,6 +270,19 @@ extension DiscordAppControllerEvents on DiscordAppController {
         messages: const <DiscordMessage>[],
         errorMessage: '네트워크와 오프라인 캐시에서 메시지를 불러오지 못했습니다.',
       );
+    }
+  }
+
+  Future<Map<String, String>> _loadCachedMediaProxyUrls() async {
+    final accountId = _state.workspace.currentUser?.id;
+    final cache = _messageCacheRepository;
+    if (accountId == null || cache == null) {
+      return const {};
+    }
+    try {
+      return await cache.loadMediaProxyUrls(accountId: accountId);
+    } on Object {
+      return const {};
     }
   }
 
