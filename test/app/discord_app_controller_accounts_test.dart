@@ -99,9 +99,13 @@ void main() {
       gateway = _FakeGateway();
       accountRepository = _FakeAccountRepository();
       accounts = DiscordAccountSessionController(accountRepository);
-      final cache = _FakeMessageCacheRepository([
-        _cachedMessage('cached-1', '오프라인 메시지'),
-      ]);
+      final cache = _FakeMessageCacheRepository(
+        [_cachedMessage('cached-1', '오프라인 메시지')],
+        mediaProxyUrls: const {
+          '/attachments/source/attachment/X.gif':
+              'https://media.discordapp.net/attachments/source/attachment/X.gif?signature=current',
+        },
+      );
       controller = DiscordAppController(
         tokenRepository: _FakeTokenRepository(),
         gateway: gateway,
@@ -140,6 +144,13 @@ void main() {
 
       expect(controller.state.messageState.messages.single.id, 'cached-1');
       expect(controller.state.messageState.errorMessage, contains('오프라인'));
+      expect(
+        controller.state.messageState.mediaProxyUrls,
+        containsPair(
+          '/attachments/source/attachment/X.gif',
+          'https://media.discordapp.net/attachments/source/attachment/X.gif?signature=current',
+        ),
+      );
       expect(cache.loadedAccountId, 'user-1');
     });
   });
@@ -281,9 +292,10 @@ final class _OfflineMessageRepository implements MessageRepository {
 }
 
 final class _FakeMessageCacheRepository implements MessageCacheRepository {
-  _FakeMessageCacheRepository(this.messages);
+  _FakeMessageCacheRepository(this.messages, {this.mediaProxyUrls = const {}});
 
   final List<DiscordMessage> messages;
+  final Map<String, String> mediaProxyUrls;
   String? loadedAccountId;
 
   @override
@@ -294,6 +306,14 @@ final class _FakeMessageCacheRepository implements MessageCacheRepository {
   }) async {
     loadedAccountId = accountId;
     return List.of(messages);
+  }
+
+  @override
+  Future<Map<String, String>> loadMediaProxyUrls({
+    required String accountId,
+  }) async {
+    loadedAccountId = accountId;
+    return Map.unmodifiable(mediaProxyUrls);
   }
 
   @override

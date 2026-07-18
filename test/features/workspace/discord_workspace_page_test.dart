@@ -505,27 +505,6 @@ void main() {
     );
     final messages = [
       DiscordMessage.fromJson({
-        'id': 'message-attachment-source',
-        'channel_id': 'channel-1',
-        'content': '',
-        'timestamp': '2026-07-18T14:00:00.000Z',
-        'author': {'id': 'user-2', 'username': 'bob'},
-        'attachments': [
-          {
-            'id': 'attachment-1',
-            'filename': 'X.gif',
-            'url':
-                'https://cdn.discordapp.com/attachments/channel-1/attachment-1/X.gif?signature=current',
-            'proxy_url':
-                'https://media.discordapp.net/attachments/channel-1/attachment-1/X.gif?signature=current&width=400',
-            'size': 1024,
-            'content_type': 'image/gif',
-            'width': 400,
-            'height': 225,
-          },
-        ],
-      }),
-      DiscordMessage.fromJson({
         'id': 'message-media',
         'channel_id': 'channel-1',
         'content':
@@ -549,7 +528,14 @@ void main() {
       MaterialApp(
         home: DiscordWorkspacePage(
           state: state,
-          messageState: DiscordMessageState.loaded('channel-1', messages),
+          messageState: DiscordMessageState.loaded(
+            'channel-1',
+            messages,
+            mediaProxyUrls: const {
+              '/attachments/channel-1/attachment-1/X.gif':
+                  'https://media.discordapp.net/attachments/channel-1/attachment-1/X.gif?signature=current&width=400',
+            },
+          ),
           selectedGuildId: 'guild-1',
           selectedChannelId: 'channel-1',
           connectionLabel: '연결됨',

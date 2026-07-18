@@ -66,6 +66,35 @@ void main() {
       expect(bob.single.content, 'Bob cache');
     });
 
+    test('계정 전체 채널의 signed media proxy index를 복원한다', () async {
+      const path = '/attachments/source-channel/attachment-1/X.gif';
+      await repository.save(
+        accountId: 'user-1',
+        message: _mediaMessage(
+          channelId: 'source-channel',
+          url: 'https://cdn.discordapp.com$path?signature=current',
+          proxyUrl:
+              'https://media.discordapp.net$path?signature=current&width=400',
+        ),
+      );
+      await repository.save(
+        accountId: 'user-2',
+        message: _mediaMessage(
+          channelId: 'other-channel',
+          url: 'https://cdn.discordapp.com$path?signature=other',
+          proxyUrl: 'https://media.discordapp.net$path?signature=other',
+        ),
+      );
+
+      final proxyUrls = await repository.loadMediaProxyUrls(
+        accountId: 'user-1',
+      );
+
+      expect(proxyUrls, {
+        path: 'https://media.discordapp.net$path?signature=current&width=400',
+      });
+    });
+
     test('채널별 최근 메시지 상한을 유지한다', () async {
       await repository.replace(
         accountId: 'user-1',
@@ -208,5 +237,32 @@ DiscordMessage _message(String id, String content, {int minute = 0}) {
     ],
     mentionRoleIds: const ['role-1'],
     pinned: true,
+  );
+}
+
+DiscordMessage _mediaMessage({
+  required String channelId,
+  required String url,
+  required String proxyUrl,
+}) {
+  return DiscordMessage(
+    id: 'message-$channelId',
+    channelId: channelId,
+    content: '',
+    authorId: 'user-2',
+    authorName: 'Alice',
+    timestamp: DateTime.utc(2026, 7, 18, 14),
+    attachments: [
+      DiscordAttachment(
+        id: 'attachment-1',
+        filename: 'X.gif',
+        url: url,
+        proxyUrl: proxyUrl,
+        size: 1024,
+        contentType: 'image/gif',
+        width: 400,
+        height: 225,
+      ),
+    ],
   );
 }
