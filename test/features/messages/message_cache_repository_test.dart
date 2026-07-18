@@ -36,6 +36,7 @@ void main() {
       expect(cached.single.id, message.id);
       expect(cached.single.content, message.content);
       expect(cached.single.authorName, message.authorName);
+      expect(cached.single.authorAvatarHash, message.authorAvatarHash);
       expect(cached.single.attachments.single.filename, 'image.png');
       expect(cached.single.reactions.single.emojiName, '👍');
       expect(cached.single.mentions.single.displayName, 'Bob');
@@ -218,6 +219,7 @@ DiscordMessage _message(String id, String content, {int minute = 0}) {
     content: content,
     authorId: 'user-2',
     authorName: 'Alice',
+    authorAvatarHash: 'avatar-hash',
     timestamp: DateTime.utc(2026, 7, 17, 12, minute),
     attachments: const [
       DiscordAttachment(

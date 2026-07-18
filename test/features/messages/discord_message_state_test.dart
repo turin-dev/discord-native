@@ -48,6 +48,7 @@ void main() {
           content: '원본',
           authorId: 'user-1',
           authorName: 'alice',
+          authorAvatarHash: 'avatar-hash',
           timestamp: DateTime.utc(2026, 7, 16, 10),
           pinned: false,
         ),
@@ -72,6 +73,7 @@ void main() {
 
       expect(updated.messages.single.content, '수정됨');
       expect(updated.messages.single.authorName, 'alice');
+      expect(updated.messages.single.authorAvatarHash, 'avatar-hash');
       expect(updated.messages.single.timestamp, DateTime.utc(2026, 7, 16, 10));
       expect(updated.messages.single.editedTimestamp, isNotNull);
       expect(updated.messages.single.pinned, isTrue);
