@@ -58,7 +58,7 @@ dependencies:
   ffi: ^2.2.0
   record: 6.2.1
   opus_dart: ^3.0.1
-  flutter_soloud: 4.0.12
+  flutter_soloud: 4.0.13
   auto_updater: ^1.0.0
   hotkey_manager: ^0.2.3
   local_notifier: ^0.1.6
