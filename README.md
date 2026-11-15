@@ -2,7 +2,7 @@
 
 [![Windows CI](https://github.com/turin-dev/discord-native/actions/workflows/windows.yml/badge.svg)](https://github.com/turin-dev/discord-native/actions/workflows/windows.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
-[![Flutter](https://img.shields.io/badge/Flutter-3.41.9-02569B?logo=flutter)](https://flutter.dev/)
+[![Flutter](https://img.shields.io/badge/Flutter-3.44.9-02569B?logo=flutter)](https://flutter.dev/)
 
 Flutter로 만든 비공식 Windows Discord 클라이언트입니다. 네이티브 데스크톱 통합과 음성·영상 경로를 포함한 현재 구현 소스 전체를 공개합니다. Windows 전역 Push-to-Talk, Discord형 네 가지 명암 테마, 세 단계 표시 밀도, 가변 채널 사이드바, 채널 고정과 탐색 기록을 제공합니다.
 
@@ -26,7 +26,7 @@ Discord 공개 API가 제공하지 않는 기능과 실환경 검증이 남은 �
 ## 요구 사항
 
 - Windows 10/11 x64
-- Flutter 3.41.9 stable과 Dart 3.11 이상
+- Flutter 3.44.9 stable과 Dart 3.12.2 이상
 - Visual Studio 2022/2026의 Desktop development with C++ workload
 - CMake와 Windows SDK
 

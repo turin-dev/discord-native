@@ -13,6 +13,10 @@ aliases: [Change Log]
 ## 2026-11-15
 
 - `dio` 5.11.1, `json_serializable` 6.14.1, `flutter_soloud` 4.1.6로 갱신
+- Flutter CI를 3.44.9(Dart 3.12.2)로 올려 `flutter_riverpod` 3.4.3을 해석할 수 있게 함
+- `flutter_riverpod` 3.5.0은 `material_ui` 이전을 포함하므로 3.4 선에서 유지
+- Dart 3.12의 `prefer_initializing_formals`는 public 생성자 인자 이름을 private 필드로 바꾸므로 비활성화
+- Flutter 3.44에서 `ColoredBox`가 `ListTile` ink를 가리므로 채널 sidebar, 검색 panel, 오른쪽 panel 배경을 `Material`로 바꿈
 
 ## 2026-07-18
 

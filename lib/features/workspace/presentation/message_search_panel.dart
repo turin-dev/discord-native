@@ -72,8 +72,9 @@ class _MessageSearchPanelState extends State<MessageSearchPanel> {
 
   @override
   Widget build(BuildContext context) {
-    return ColoredBox(
+    return Material(
       color: context.discordPalette.sidebar,
+      surfaceTintColor: Colors.transparent,
       child: SizedBox(
         width: 280,
         child: Column(

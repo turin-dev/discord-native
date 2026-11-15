@@ -309,8 +309,9 @@ class ChannelSidebar extends StatelessWidget {
               !channel.isCategory && pinnedChannelIds.contains(channel.id),
         )
         .toList();
-    return ColoredBox(
+    return Material(
       color: context.discordPalette.sidebar,
+      surfaceTintColor: Colors.transparent,
       child: SizedBox(
         width: width,
         child: Column(
