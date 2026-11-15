@@ -52,8 +52,9 @@ class WorkspaceRightPanel extends StatelessWidget {
       ),
       length: 2,
       initialIndex: directMessages || hasActiveSearch ? 0 : 1,
-      child: ColoredBox(
+      child: Material(
         color: context.discordPalette.sidebar,
+        surfaceTintColor: Colors.transparent,
         child: SizedBox(
           width: DiscordLayout.rightPanelWidth,
           child: Column(

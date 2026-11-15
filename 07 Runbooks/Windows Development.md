@@ -3,12 +3,14 @@ type: runbook
 status: active
 tags: [windows, flutter, build]
 source_paths: [windows/CMakeLists.txt, windows/libdave/, tool/build_windows.ps1, lib/features/workspace/data/read_state_repository.dart, lib/features/system/data/windows_desktop_system_bridge.dart, lib/features/workspace/presentation/attachment_video_player.dart]
-reviewed_at: 2026-07-17
+reviewed_at: 2026-11-15
 confidence: high
 aliases: [Windows Development]
 ---
 
 # Windows Development
+
+검증에 쓰는 툴체인은 Flutter 3.44.9 stable과 Dart 3.12.2이다. `flutter_riverpod` 3.4는 Dart `^3.12.0`을 요구해서 Flutter 3.41.9(Dart 3.11.5)에서는 의존성을 풀 수 없다.
 
 기본 검증:
 
