@@ -3,12 +3,16 @@ type: change-log
 status: active
 tags: [changes]
 source_paths: [lib/, test/, windows/, third_party/, tool/]
-reviewed_at: 2026-07-18
+reviewed_at: 2026-11-15
 confidence: high
 aliases: [Change Log]
 ---
 
 # Change Log
+
+## 2026-11-15
+
+- `dio` 5.11.1, `json_serializable` 6.14.1, `flutter_soloud` 4.1.6로 갱신
 
 ## 2026-07-18
 
